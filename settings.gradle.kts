@@ -45,6 +45,14 @@ dependencyResolutionManagement {
         google()
         mavenLocal()
     }
+
+    val zenhelixGradleVersion: String by settings
+
+    versionCatalogs {
+        create("zenhelixPlugins") {
+            from("io.github.zenhelix:gradle-magic-wands-catalog:$zenhelixGradleVersion")
+        }
+    }
 }
 
 pluginManagement {
@@ -54,16 +62,19 @@ pluginManagement {
         mavenLocal()
     }
 
+    val zenhelixGradleVersion: String by settings
     val kotlinVersion: String by settings
-    val androidVersion: String by settings
+    val mavenCentralPublishVersion = "0.5.0"
 
     plugins {
-        id("org.jetbrains.kotlin.multiplatform") version kotlinVersion
-        id("org.jetbrains.kotlin.jvm") version kotlinVersion
         id("org.jetbrains.kotlin.plugin.serialization") version kotlinVersion
-        id("org.jetbrains.kotlin.kapt") version kotlinVersion
-        id("org.jetbrains.kotlin.plugin.spring") version kotlinVersion
 
-        id("com.android.library") version androidVersion
+        id("io.github.zenhelix.maven-central-publish") version mavenCentralPublishVersion
+
+        id("io.github.zenhelix.kmm-library") version zenhelixGradleVersion
+        id("io.github.zenhelix.kotlin-jvm-library") version zenhelixGradleVersion
+        id("io.github.zenhelix.spring-library") version zenhelixGradleVersion
+        id("io.github.zenhelix.spring-boot-autoconfigure-library") version zenhelixGradleVersion
+        id("io.github.zenhelix.spring-boot-starter") version zenhelixGradleVersion
     }
 }

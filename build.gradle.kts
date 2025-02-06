@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") apply false
-    kotlin("multiplatform") apply false
+    id("io.github.zenhelix.kmm-library") apply false
+    id("io.github.zenhelix.kotlin-jvm-library") apply false
     kotlin("plugin.serialization") apply false
-    id("com.android.library") apply false
+    id("io.github.zenhelix.maven-central-publish") apply false
 }
 
 allprojects {
@@ -10,5 +10,5 @@ allprojects {
 }
 
 subprojects {
-    apply(plugin = "maven-publish")
+    apply(plugin = "io.github.zenhelix.maven-central-publish")
 }

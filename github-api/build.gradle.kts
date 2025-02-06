@@ -1,20 +1,11 @@
 plugins {
-    kotlin("multiplatform")
+    id("io.github.zenhelix.kmm-library")
     kotlin("plugin.serialization")
 }
 
 val kotlinxSerializationVersion: String by project
 
-val jdkVersion = JavaVersion.VERSION_17
-
 kotlin {
-    explicitApi()
-
-    jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = jdkVersion.toString()
-        }
-    }
 
     sourceSets {
         val commonMain by getting {
@@ -30,4 +21,8 @@ kotlin {
         }
 
     }
+}
+
+android {
+    namespace = "io.github.zenhelix"
 }

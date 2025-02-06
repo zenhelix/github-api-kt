@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm")
     kotlin("plugin.serialization")
-    `java-library`
+    id("io.github.zenhelix.kotlin-jvm-library")
+    id("io.github.zenhelix.spring-library")
 }
 
 val springBootVersion: String by project
@@ -18,10 +18,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testImplementation("org.springframework:spring-test")
-}
-
-kotlin {
-    explicitApi()
 }
 
 tasks.test {

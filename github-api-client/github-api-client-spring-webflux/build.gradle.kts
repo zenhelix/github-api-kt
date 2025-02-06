@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm")
     kotlin("plugin.serialization")
-    `java-library`
+    id("io.github.zenhelix.kotlin-jvm-library")
+    id("io.github.zenhelix.spring-library")
 }
 
 val springBootVersion: String by project
@@ -16,7 +16,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
 
     runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:$kotlinxCoroutinesVersion")
-    //    runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
@@ -24,10 +23,6 @@ dependencies {
     testImplementation("org.springframework:spring-test")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinxCoroutinesVersion")
-}
-
-kotlin {
-    explicitApi()
 }
 
 tasks.test {

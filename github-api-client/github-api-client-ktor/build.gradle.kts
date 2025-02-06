@@ -1,43 +1,16 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
-    kotlin("multiplatform")
+    id("io.github.zenhelix.kmm-library")
     kotlin("plugin.serialization")
-    id("com.android.library")
 }
 
 val ktorVersion: String by project
 val logbackVersion: String by project
 val junitVersion: String by project
 
-val jdkVersion = JavaVersion.VERSION_17
-
 kotlin {
-    explicitApi()
-
-    jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = jdkVersion.toString()
-        }
-        testRuns.configureEach {
-            executionTask.configure {
-                useJUnitPlatform()
-            }
-        }
-    }
-
     androidTarget {
         publishLibraryVariants("release")
-        compilerOptions {
-            jvmTarget.set(JvmTarget.fromTarget(jdkVersion.toString()))
-        }
     }
-
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
-
-    js()
 
     sourceSets {
         val commonMain by getting {
@@ -86,8 +59,4 @@ kotlin {
 
 android {
     namespace = "io.github.zenhelix"
-    compileSdk = 34
-    defaultConfig {
-        minSdk = 24
-    }
 }

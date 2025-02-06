@@ -1,15 +1,15 @@
 plugins {
     `java-library`
-}
-
-subprojects {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "java-library")
+    id("io.github.zenhelix.kotlin-jvm-library") apply false
+    id("io.github.zenhelix.spring-boot-starter") apply false
 }
 
 val springBootVersion: String by project
 
 project("github-api-client-rest-starter") {
+    apply(plugin = "io.github.zenhelix.kotlin-jvm-library")
+    apply(plugin = "io.github.zenhelix.spring-boot-starter")
+
     dependencies {
         implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
         api(rootProject.projects.githubApiClientSpring.githubApiClientRestAutoconfigure)
@@ -21,6 +21,9 @@ project("github-api-client-rest-starter") {
 }
 
 project("github-api-client-webflux-starter") {
+    apply(plugin = "io.github.zenhelix.kotlin-jvm-library")
+    apply(plugin = "io.github.zenhelix.spring-boot-starter")
+
     dependencies {
         implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
         api(rootProject.projects.githubApiClientSpring.githubApiClientWebfluxAutoconfigure)
