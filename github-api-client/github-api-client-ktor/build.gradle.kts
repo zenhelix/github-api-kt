@@ -6,8 +6,17 @@ plugins {
 val ktorVersion: String by project
 val logbackVersion: String by project
 val junitVersion: String by project
+val kotlinxCoroutinesVersion: String by project
 
 kotlin {
+    jvm {
+        testRuns.configureEach {
+            executionTask.configure {
+                useJUnitPlatform()
+            }
+        }
+    }
+
     androidTarget {
         publishLibraryVariants("release")
     }
@@ -27,7 +36,7 @@ kotlin {
                 implementation(kotlin("test-common"))
                 implementation(kotlin("test-annotations-common"))
                 implementation("io.ktor:ktor-client-mock:$ktorVersion")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinxCoroutinesVersion")
             }
         }
 
@@ -51,8 +60,17 @@ kotlin {
         iosMain.dependencies {
             implementation("io.ktor:ktor-client-cio:$ktorVersion")
         }
+        iosTest.dependencies {
+            implementation(kotlin("test"))
+        }
         jsMain.dependencies {
             implementation("io.ktor:ktor-client-js:$ktorVersion")
+        }
+        jsTest.dependencies {
+            implementation(kotlin("test-js"))
+        }
+        wasmJsTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

@@ -31,6 +31,6 @@ public class GithubApiWebfluxClient(
         .bearer(requiredToken(token))
         .retrieve().awaitBody()
 
-    private fun requiredToken(token: String?): String = defaultToken ?: token ?: throw IllegalArgumentException("Token is required")
+    private fun requiredToken(token: String?): String = token ?: defaultToken ?: throw IllegalArgumentException("Token is required")
 
 }

@@ -11,13 +11,13 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class GithubApiKtorClientTest {
 
-    @Test fun `success request`() {
+    @Test fun `success request`() = runTest {
         val mockBearer = "mock"
 
         val mockEngine = MockEngine { request ->
@@ -151,7 +151,7 @@ class GithubApiKtorClientTest {
                     nodeId = "MDc6TGljZW5zZTE1"
                 )
             ),
-            runBlocking { GithubApiKtorClient(mockEngine, defaultToken = mockBearer).licenses() }
+            GithubApiKtorClient(mockEngine, defaultToken = mockBearer).licenses()
         )
     }
 
