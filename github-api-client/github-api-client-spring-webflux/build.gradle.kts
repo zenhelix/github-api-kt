@@ -8,6 +8,7 @@ val springBootVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val kotlinxSerializationVersion: String by project
 val junitVersion: String by project
+val mockwebserverVersion = "4.12.0"
 
 dependencies {
     api(rootProject.projects.githubApi)
@@ -23,9 +24,8 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 
     testImplementation("org.springframework:spring-test")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:$mockwebserverVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinxCoroutinesVersion")
-    testImplementation("io.projectreactor:reactor-test:3.7.1")
 }
 
 tasks.test {

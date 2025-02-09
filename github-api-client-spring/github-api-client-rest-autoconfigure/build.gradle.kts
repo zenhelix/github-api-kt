@@ -4,6 +4,7 @@ plugins {
 }
 
 val springBootVersion: String by project
+val hibernateValidatorVersion = "8.0.2.Final"
 
 dependencies {
     compileOnly(rootProject.projects.githubApiClient.githubApiClientSpringRest)
@@ -12,5 +13,5 @@ dependencies {
     kapt(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
 
     compileOnly("jakarta.validation:jakarta.validation-api")
-    compileOnly("org.hibernate.validator:hibernate-validator:8.0.2.Final")
+    compileOnly("org.hibernate.validator:hibernate-validator:$hibernateValidatorVersion")
 }
