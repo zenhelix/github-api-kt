@@ -1,6 +1,8 @@
 package io.github.zenhelix.github.client.http.webflux
 
 import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_JSON_MEDIA_TYPE
+import io.github.zenhelix.github.client.http.model.ErrorResponse
+import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.License
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
@@ -8,9 +10,11 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.core.codec.DecodingException
 import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
+import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GithubApiWebfluxClientTest {
 
@@ -39,7 +43,7 @@ class GithubApiWebfluxClientTest {
         mockWebServer.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .setHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 .setBody(
                     //language=JSON
                     """
@@ -50,15 +54,6 @@ class GithubApiWebfluxClientTest {
                     """.trimIndent()
                 )
         )
-
-        val result = client.licenses()
-
-        mockWebServer.takeRequest().also {
-            assertEquals("GET", it.method)
-            assertEquals("/licenses", it.path)
-            assertEquals("Bearer $MOCK_TOKEN", it.getHeader(HttpHeaders.AUTHORIZATION))
-            assertEquals("${APPLICATION_GITHUB_JSON_MEDIA_TYPE}, ${MediaType.APPLICATION_JSON_VALUE}", it.getHeader(HttpHeaders.ACCEPT))
-        }
 
         assertEquals(
             listOf(
@@ -77,9 +72,53 @@ class GithubApiWebfluxClientTest {
                     nodeId = "MDc6TGljZW5zZTI="
                 )
             ),
-            result
+            client.licenses().result()
         )
 
+        mockWebServer.takeRequest().also {
+            assertEquals("GET", it.method)
+            assertEquals("/licenses", it.path)
+            assertEquals("Bearer $MOCK_TOKEN", it.getHeader(HttpHeaders.AUTHORIZATION))
+            assertEquals("${APPLICATION_GITHUB_JSON_MEDIA_TYPE}, $APPLICATION_JSON_VALUE", it.getHeader(HttpHeaders.ACCEPT))
+        }
+    }
+
+    @Test fun `unexpected response`() = runTest {
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                .setBody("""unexpected""")
+        )
+
+        val result = client.licenses()
+        assertTrue(result is HttpResponseResult.UnexpectedError)
+        assertTrue(result.cause is DecodingException)
+        assertEquals(400, result.httpStatus)
+    }
+
+    @Test fun `error response`() = runTest {
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(401)
+                .setHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                .setBody(
+                    //language=JSON
+                    """{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}"""
+                )
+        )
+
+        val result = client.licenses()
+        assertTrue(result is HttpResponseResult.Error<*>)
+        assertEquals(
+            ErrorResponse(
+                message = "Bad credentials",
+                documentationUrl = "https://docs.github.com/rest",
+                status = "401"
+            ),
+            result.data as ErrorResponse
+        )
+        assertEquals(401, result.httpStatus)
     }
 
 }

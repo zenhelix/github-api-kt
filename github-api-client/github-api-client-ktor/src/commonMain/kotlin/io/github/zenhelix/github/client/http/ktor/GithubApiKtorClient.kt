@@ -2,12 +2,14 @@ package io.github.zenhelix.github.client.http.ktor
 
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_BASE_URL
 import io.github.zenhelix.github.client.http.GithubCoroutineApi
+import io.github.zenhelix.github.client.http.ktor.utils.HttpClientExtensions.result
 import io.github.zenhelix.github.client.http.ktor.utils.acceptGithubJson
 import io.github.zenhelix.github.client.http.ktor.utils.githubApiVersion
+import io.github.zenhelix.github.client.http.model.ErrorResponse
+import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -48,8 +50,8 @@ public class GithubApiKtorClient(
         TODO()
     }
 
-    override suspend fun licenses(token: String?): LicensesResponse = client
-        .get("$baseUrl/licenses") { bearerAuth(requiredToken(token)) }.body()
+    override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = client
+        .get("$baseUrl/licenses") { bearerAuth(requiredToken(token)) }.result()
 
     public fun close() {
         client.close()

@@ -4,7 +4,10 @@ import io.github.zenhelix.github.client.http.GithubApiVersion
 import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_JSON_MEDIA_TYPE
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_BASE_URL
 import io.github.zenhelix.github.client.http.ktor.utils.GithubApiVersion
+import io.github.zenhelix.github.client.http.model.ErrorResponse
+import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.License
+import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
@@ -14,6 +17,7 @@ import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GithubApiKtorClientTest {
 
@@ -63,6 +67,12 @@ class GithubApiKtorClientTest {
             )
         }
 
+        val result = GithubApiKtorClient(mockEngine, defaultToken = mockBearer).licenses()
+        assertEquals(
+            (result as HttpResponseResult.Success).httpStatus,
+            200
+        )
+        assertTrue(result.httpHeaders.size == 24)
         assertEquals(
             listOf(
                 License(
@@ -151,7 +161,44 @@ class GithubApiKtorClientTest {
                     nodeId = "MDc6TGljZW5zZTE1"
                 )
             ),
-            GithubApiKtorClient(mockEngine, defaultToken = mockBearer).licenses()
+            result.result()
+        )
+    }
+
+    @Test fun `unexpected response`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = ByteReadChannel("unexpected"),
+                status = HttpStatusCode.OK
+            )
+        }
+
+        val result = GithubApiKtorClient(mockEngine, defaultToken = "mock").licenses()
+        assertTrue(result is HttpResponseResult.UnexpectedError)
+        assertTrue(result.cause is NoTransformationFoundException)
+    }
+
+    @Test fun `error response`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = ByteReadChannel(
+                    //language=JSON
+                    """{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}"""
+                ),
+                status = HttpStatusCode.Unauthorized,
+                headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+            )
+        }
+
+        val result = GithubApiKtorClient(mockEngine, defaultToken = "mock").licenses()
+        assertTrue(result is HttpResponseResult.Error<*>)
+        assertEquals(
+            ErrorResponse(
+                message = "Bad credentials",
+                documentationUrl = "https://docs.github.com/rest",
+                status = "401"
+            ),
+            result.data as ErrorResponse
         )
     }
 

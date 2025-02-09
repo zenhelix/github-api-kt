@@ -2,13 +2,15 @@ package io.github.zenhelix.github.client.http.webflux
 
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_BASE_URL
 import io.github.zenhelix.github.client.http.GithubCoroutineApi
+import io.github.zenhelix.github.client.http.model.ErrorResponse
+import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.github.zenhelix.github.client.http.webflux.utils.acceptGithubJson
+import io.github.zenhelix.github.client.http.webflux.utils.awaitResult
 import io.github.zenhelix.github.client.http.webflux.utils.bearer
 import io.github.zenhelix.github.client.http.webflux.utils.githubVersion
 import io.github.zenhelix.github.client.http.webflux.utils.kotlinSerializationJsonCodec
 import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.awaitBody
 
 public class GithubApiWebfluxClient(
     webClientBuilder: WebClient.Builder = WebClient.builder(),
@@ -26,10 +28,10 @@ public class GithubApiWebfluxClient(
         TODO("Not yet implemented")
     }
 
-    override suspend fun licenses(token: String?): LicensesResponse = webClient
+    override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = webClient
         .get().uri("/licenses")
         .bearer(requiredToken(token))
-        .retrieve().awaitBody()
+        .awaitResult<LicensesResponse, ErrorResponse>()
 
     private fun requiredToken(token: String?): String = token ?: defaultToken ?: throw IllegalArgumentException("Token is required")
 

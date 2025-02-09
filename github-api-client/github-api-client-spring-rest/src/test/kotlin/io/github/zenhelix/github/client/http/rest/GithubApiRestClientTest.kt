@@ -3,6 +3,8 @@ package io.github.zenhelix.github.client.http.rest
 import io.github.zenhelix.github.client.http.GithubApiVersion
 import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_JSON_MEDIA_TYPE
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_VERSION_HEADER_NAME
+import io.github.zenhelix.github.client.http.model.ErrorResponse
+import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.License
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -15,9 +17,13 @@ import org.springframework.test.web.client.SimpleRequestExpectationManager
 import org.springframework.test.web.client.match.MockRestRequestMatchers.header
 import org.springframework.test.web.client.match.MockRestRequestMatchers.method
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
+import org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
+import org.springframework.test.web.client.response.MockRestResponseCreators.withUnauthorizedRequest
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.RestClientException
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class GithubApiRestClientTest {
 
@@ -73,8 +79,54 @@ class GithubApiRestClientTest {
                     nodeId = "MDc6TGljZW5zZTI="
                 )
             ),
-            client.licenses()
+            client.licenses().result()
         )
+
+        mockServer.verify()
+    }
+
+    @Test fun `unexpected response`() {
+        mockServer.expect(requestTo("$TEST_BASE_URL/licenses"))
+            .andExpect(method(HttpMethod.GET))
+            .andExpect(header(HttpHeaders.ACCEPT, "$APPLICATION_GITHUB_JSON_MEDIA_TYPE, $APPLICATION_JSON_VALUE"))
+            .andExpect(header(GITHUB_API_VERSION_HEADER_NAME, GithubApiVersion.V_2022_11_28.version))
+            .andRespond(
+                withBadRequest().body("""unexpected""").contentType(MediaType.APPLICATION_JSON)
+            )
+
+        val result = client.licenses()
+        assertTrue(result is HttpResponseResult.UnexpectedError)
+        assertTrue(result.cause is RestClientException)
+        assertEquals(400, result.httpStatus)
+
+        mockServer.verify()
+    }
+
+    @Test fun `error response`() {
+        mockServer.expect(requestTo("$TEST_BASE_URL/licenses"))
+            .andExpect(method(HttpMethod.GET))
+            .andExpect(header(HttpHeaders.ACCEPT, "$APPLICATION_GITHUB_JSON_MEDIA_TYPE, $APPLICATION_JSON_VALUE"))
+            .andExpect(header(GITHUB_API_VERSION_HEADER_NAME, GithubApiVersion.V_2022_11_28.version))
+            .andRespond(
+                withUnauthorizedRequest()
+                    .body(
+                        //language=JSON
+                        """{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}"""
+                    )
+                    .contentType(MediaType.APPLICATION_JSON)
+            )
+
+        val result = client.licenses()
+        assertTrue(result is HttpResponseResult.Error<*>)
+        assertEquals(
+            ErrorResponse(
+                message = "Bad credentials",
+                documentationUrl = "https://docs.github.com/rest",
+                status = "401"
+            ),
+            result.data as ErrorResponse
+        )
+        assertEquals(401, result.httpStatus)
 
         mockServer.verify()
     }

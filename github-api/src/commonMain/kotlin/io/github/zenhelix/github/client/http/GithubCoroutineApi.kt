@@ -1,12 +1,14 @@
 package io.github.zenhelix.github.client.http
 
+import io.github.zenhelix.github.client.http.model.ErrorResponse
+import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
 
 public interface GithubCoroutineApi : GithubActionsCoroutineApi, GithubLicensesCoroutineApi
 
 public interface GithubLicensesCoroutineApi {
 
-    public suspend fun licenses(token: String? = null): LicensesResponse
+    public suspend fun licenses(token: String? = null): HttpResponseResult<LicensesResponse, ErrorResponse>
 
 }
 
