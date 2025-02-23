@@ -12,9 +12,11 @@ val mockwebserverVersion = "4.12.0"
 
 dependencies {
     api(rootProject.projects.githubApi)
+
     implementation(platform("org.springframework.boot:spring-boot-dependencies:$springBootVersion"))
-    implementation("org.springframework:spring-webflux")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
+
+    api("org.springframework:spring-webflux")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:$kotlinxCoroutinesVersion")

@@ -104,7 +104,6 @@ public suspend inline fun <reified T : Any, reified E : Any> WebClient.RequestHe
                     httpStatus = clientResponse.statusCode().value(),
                     httpHeaders = clientResponse.headers().asHttpHeaders()
                 )
-
             } else {
                 HttpResponseResult.Error(
                     data = clientResponse.awaitBodyOrBodiless(),

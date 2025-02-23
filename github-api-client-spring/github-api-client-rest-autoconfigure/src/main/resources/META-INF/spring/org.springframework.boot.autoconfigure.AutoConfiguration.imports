@@ -1,1 +1,2 @@
+io.github.zenhelix.github.client.http.spring.utils.ApacheHttpClientSpringAutoconfigure
 io.github.zenhelix.github.client.http.spring.GithubClientRestAutoConfiguration

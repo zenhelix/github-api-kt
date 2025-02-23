@@ -18,17 +18,24 @@ catalog {
             version("github-api-client") { strictly(currentVersion) }
         }
 
-        rootProject.subprojects.filter { it.name != project.name }.forEach { project ->
-            project.extensions.findByType<PublishingExtension>()?.publications?.forEach {
-                if (it is MavenPublication) {
-                    library(it.artifactId, it.groupId, it.artifactId).apply {
-                        if (currentVersion != Project.DEFAULT_VERSION) {
-                            version { strictly(currentVersion) }
+        rootProject.subprojects
+            .filter {
+                it.name.contains("github-api-platform-").not()
+                        && it.name != project.name
+            }
+            .forEach { project ->
+                project.publishing.publications
+                    .filterIsInstance<MavenPublication>()
+                    .forEach {
+                        library(it.artifactId, it.groupId, it.artifactId).apply {
+                            if (currentVersion != Project.DEFAULT_VERSION) {
+                                version { strictly(currentVersion) }
+                            } else {
+                                withoutVersion()
+                            }
                         }
                     }
-                }
             }
-        }
 
     }
 }

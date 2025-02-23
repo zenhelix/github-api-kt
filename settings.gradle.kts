@@ -64,7 +64,7 @@ pluginManagement {
 
     val zenhelixGradleVersion: String by settings
     val kotlinVersion: String by settings
-    val mavenCentralPublishVersion = "0.5.0"
+    val mavenCentralPublishVersion: String by settings
 
     plugins {
         id("org.jetbrains.kotlin.plugin.serialization") version kotlinVersion
