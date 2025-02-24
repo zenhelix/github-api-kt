@@ -65,9 +65,11 @@ pluginManagement {
     val zenhelixGradleVersion: String by settings
     val kotlinVersion: String by settings
     val mavenCentralPublishVersion: String by settings
+    val atomicFuVersion: String by settings
 
     plugins {
         id("org.jetbrains.kotlin.plugin.serialization") version kotlinVersion
+        id("org.jetbrains.kotlinx.atomicfu") version atomicFuVersion
 
         id("io.github.zenhelix.maven-central-publish") version mavenCentralPublishVersion
 

@@ -2,9 +2,15 @@ package io.github.zenhelix.github.client.http.ktor
 
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_BASE_URL
 import io.github.zenhelix.github.client.http.GithubCoroutineApi
+import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerConfig
+import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerException
+import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreaking
+import io.github.zenhelix.github.client.http.ktor.circuitbreaker.global
+import io.github.zenhelix.github.client.http.ktor.circuitbreaker.withCircuitBreaker
 import io.github.zenhelix.github.client.http.ktor.utils.HttpClientExtensions.result
 import io.github.zenhelix.github.client.http.ktor.utils.acceptGithubJson
 import io.github.zenhelix.github.client.http.ktor.utils.githubApiVersion
+import io.github.zenhelix.github.client.http.model.CircuitBreakerDataError
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
@@ -22,11 +28,13 @@ import io.ktor.client.request.get
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.seconds
 
 public class GithubApiKtorClient(
     engine: HttpClientEngine,
     private val baseUrl: String = GITHUB_API_PUBLIC_BASE_URL,
     private val defaultToken: String? = null,
+    circuitBreakerConfig: CircuitBreakerConfig.CircuitBreakerBuilder.() -> Unit = {},
     configure: HttpClientConfig<*>.() -> Unit = {}
 ) : GithubCoroutineApi {
 
@@ -43,6 +51,17 @@ public class GithubApiKtorClient(
             level = LogLevel.ALL
             sanitizeHeader { header -> header == HttpHeaders.Authorization }
         }
+        install(CircuitBreaking) {
+            global {
+                failureThreshold = 4
+                halfOpenFailureThreshold = 2
+                resetInterval = 1.seconds
+                failureTrigger = { status.value >= 400 }
+
+                circuitBreakerConfig()
+            }
+        }
+
         configure()
     }
 
@@ -50,8 +69,17 @@ public class GithubApiKtorClient(
         TODO()
     }
 
-    override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = client
-        .get("$baseUrl/licenses") { bearerAuth(requiredToken(token)) }.result()
+    override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = try {
+        client.get("$baseUrl/licenses") {
+            bearerAuth(requiredToken(token))
+            withCircuitBreaker()
+        }.result()
+    } catch (e: CircuitBreakerException) {
+        HttpResponseResult.CircuitBreakerError(
+            data = CircuitBreakerDataError(nextHalfOpenTimeEpochMs = e.nextHalfOpenTime.toEpochMilliseconds()),
+            cause = e
+        )
+    }
 
     public fun close() {
         client.close()

@@ -22,15 +22,17 @@ public sealed class HttpResponseResult<out S : Any, out E : Any>(
 
     public fun result(exception: (data: E?, cause: Throwable?, httpStatus: Int?, httpHeaders: Map<String, List<String>>?) -> RuntimeException = defaultException): S? =
         when (this) {
-            is Success         -> data
-            is Error           -> throw exception(data, cause, httpStatus, httpHeaders)
-            is UnexpectedError -> throw IllegalStateException("Error request $httpStatus, $httpHeaders", cause)
+            is Success             -> data
+            is Error               -> throw exception(data, cause, httpStatus, httpHeaders)
+            is CircuitBreakerError -> throw IllegalStateException("Circuit breaker error. $httpStatus, $httpHeaders", cause)
+            is UnexpectedError     -> throw IllegalStateException("Error request $httpStatus, $httpHeaders", cause)
         }
 
     public companion object {
         public fun <S : Any, E : Any> of(result: ResponseResult<S, E>): HttpResponseResult<S, E> = when (result) {
             is Error                          -> result
             is Success                        -> result
+            is CircuitBreakerError -> result
             is UnexpectedError                -> result
 
             is ResponseResult.Error           -> Error(data = result.data, cause = result.cause, httpStatus = 0)
@@ -42,13 +44,15 @@ public sealed class HttpResponseResult<out S : Any, out E : Any>(
             result: ResponseResult<S, E>,
             httpStatus: Int, httpHeaders: Map<String, List<String>> = emptyMap()
         ): HttpResponseResult<S, E> = when (result) {
-            is Error                          -> result
             is Success                        -> result
+            is Error               -> result
+            is CircuitBreakerError -> result
             is UnexpectedError                -> result
 
             is ResponseResult.Error           -> Error(data = result.data, cause = result.cause, httpStatus = httpStatus, httpHeaders = httpHeaders)
             is ResponseResult.Success         -> Success(data = result.data, httpStatus = httpStatus, httpHeaders = httpHeaders)
             is ResponseResult.UnexpectedError -> UnexpectedError(cause = result.cause, httpStatus = httpStatus, httpHeaders = httpHeaders)
+
         }
 
     }
@@ -66,6 +70,13 @@ public sealed class HttpResponseResult<out S : Any, out E : Any>(
         override val httpHeaders: Map<String, List<String>> = emptyMap()
     ) : HttpResponseResult<Nothing, E>(httpStatus = httpStatus, httpHeaders = httpHeaders)
 
+    public data class CircuitBreakerError(
+        val data: CircuitBreakerDataError? = null,
+        val cause: Throwable? = null,
+        override val httpStatus: Int = 503,
+        override val httpHeaders: Map<String, List<String>> = emptyMap()
+    ) : HttpResponseResult<Nothing, Nothing>(httpStatus = httpStatus, httpHeaders = httpHeaders)
+
     public data class UnexpectedError(
         val cause: Throwable,
         override val httpStatus: Int? = null,
@@ -75,26 +86,35 @@ public sealed class HttpResponseResult<out S : Any, out E : Any>(
     public fun <OS : Any> copySuccess(
         data: (S?) -> OS
     ): HttpResponseResult<OS, E> = when (val current = this) {
-        is Success         -> Success(data = data(current.data), httpStatus = current.httpStatus, httpHeaders = current.httpHeaders)
-        is Error           -> current
-        is UnexpectedError -> current
+        is Success             -> Success(data = data(current.data), httpStatus = current.httpStatus, httpHeaders = current.httpHeaders)
+        is Error               -> current
+        is CircuitBreakerError -> current
+        is UnexpectedError     -> current
     }
 
     public fun <OE : Any> copyError(
         error: (E?) -> OE?
     ): HttpResponseResult<S, OE> = when (val current = this) {
-        is Success         -> current
-        is Error           -> Error(data = error(current.data), cause = current.cause, httpStatus = current.httpStatus, httpHeaders = current.httpHeaders)
-        is UnexpectedError -> current
+        is Success             -> current
+        is Error               -> Error(
+            data = error(current.data), cause = current.cause, httpStatus = current.httpStatus, httpHeaders = current.httpHeaders
+        )
+
+        is UnexpectedError     -> current
+        is CircuitBreakerError -> current
     }
 
     @Suppress("UNCHECKED_CAST")
     public fun <OS : Any, OE : Any> copy(
         data: (S?) -> OS = { it as OS }, error: (E?) -> OE? = { it as OE }
     ): HttpResponseResult<OS, OE> = when (val current = this) {
-        is Success         -> Success(data = data(current.data), httpStatus = current.httpStatus, httpHeaders = current.httpHeaders)
-        is Error           -> Error(data = error(current.data), cause = current.cause, httpStatus = current.httpStatus, httpHeaders = current.httpHeaders)
-        is UnexpectedError -> current
+        is Success             -> Success(data = data(current.data), httpStatus = current.httpStatus, httpHeaders = current.httpHeaders)
+        is Error               -> Error(
+            data = error(current.data), cause = current.cause, httpStatus = current.httpStatus, httpHeaders = current.httpHeaders
+        )
+
+        is UnexpectedError     -> current
+        is CircuitBreakerError -> current
     }
 
     override fun equals(other: Any?): Boolean {
@@ -116,3 +136,7 @@ public sealed class HttpResponseResult<out S : Any, out E : Any>(
     override fun toString(): String = "HttpResponseResult(httpStatus=$httpStatus, httpHeaders=$httpHeaders)"
 
 }
+
+public data class CircuitBreakerDataError(
+    val nextHalfOpenTimeEpochMs: Long?
+)

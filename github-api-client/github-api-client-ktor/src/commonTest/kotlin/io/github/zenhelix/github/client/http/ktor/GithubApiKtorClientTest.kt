@@ -7,18 +7,25 @@ import io.github.zenhelix.github.client.http.ktor.utils.GithubApiVersion
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.License
+import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.MockEngineConfig
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class GithubApiKtorClientTest {
 
     @Test fun `success request`() = runTest {
@@ -199,6 +206,58 @@ class GithubApiKtorClientTest {
                 status = "401"
             ),
             result.data as ErrorResponse
+        )
+    }
+
+    @Test fun `circuit breaker`() = runTest {
+        val resetInterval = 10.seconds
+        val failureThreshold = 3
+
+        val mockEngine = MockEngine(MockEngineConfig().apply {
+            this.dispatcher = StandardTestDispatcher(this@runTest.testScheduler)
+            repeat(failureThreshold + 1) {
+                addHandler {
+                    respond(
+                        content = ByteReadChannel(
+                            //language=JSON
+                            """{"message":"Bad credentials","documentation_url":"https://docs.github.com/rest","status":"401"}"""
+                        ),
+                        status = HttpStatusCode.Unauthorized,
+                        headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+                    )
+                }
+            }
+
+            addHandler {
+                respond(
+                    //language=JSON
+                    "[]",
+                    headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+                )
+            }
+        })
+
+        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock", circuitBreakerConfig = {
+            this.failureThreshold = failureThreshold
+            this.halfOpenFailureThreshold = 2
+            this.resetInterval = resetInterval
+        })
+
+        val expectedResponse = ErrorResponse(message = "Bad credentials", documentationUrl = "https://docs.github.com/rest", status = "401")
+
+        repeat(failureThreshold) {
+            assertEquals(expectedResponse, (client.licenses() as HttpResponseResult.Error<ErrorResponse>).data)
+        }
+
+        assertTrue(client.licenses() is HttpResponseResult.CircuitBreakerError)
+
+        advanceTimeBy(resetInterval + 1.seconds)
+
+        assertEquals(expectedResponse, (client.licenses() as HttpResponseResult.Error<ErrorResponse>).data)
+
+        assertEquals(
+            emptyList<License>(),
+            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
         )
     }
 

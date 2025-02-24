@@ -1,9 +1,11 @@
 plugins {
     id("io.github.zenhelix.kmm-library")
     kotlin("plugin.serialization")
+    id("org.jetbrains.kotlinx.atomicfu")
 }
 
 val ktorVersion: String by project
+val kotlinxDatetimeVersion: String by project
 val logbackVersion: String by project
 val junitVersion: String by project
 val kotlinxCoroutinesVersion: String by project
@@ -29,6 +31,8 @@ kotlin {
                 implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
                 implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
                 implementation("io.ktor:ktor-client-logging:$ktorVersion")
+
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")
             }
         }
         val commonTest by getting {
@@ -77,4 +81,8 @@ kotlin {
 
 android {
     namespace = "io.github.zenhelix"
+}
+
+atomicfu {
+    transformJvm = false
 }
