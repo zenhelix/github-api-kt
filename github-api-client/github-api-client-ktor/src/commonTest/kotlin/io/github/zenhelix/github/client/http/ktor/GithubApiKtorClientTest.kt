@@ -1,6 +1,6 @@
 package io.github.zenhelix.github.client.http.ktor
 
-import io.github.zenhelix.github.client.http.GithubApiVersion
+import io.github.zenhelix.github.client.http.GithubApiVersion.V_2022_11_28
 import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_JSON_MEDIA_TYPE
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_BASE_URL
 import io.github.zenhelix.github.client.http.ktor.utils.GithubApiVersion
@@ -28,6 +28,7 @@ import test.clock
 import test.createMockEngine
 import test.mockEngine
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
@@ -43,7 +44,7 @@ class GithubApiKtorClientTest {
             assertEquals("$GITHUB_API_PUBLIC_BASE_URL/licenses", request.url.toString())
             assertEquals("Bearer $mockBearer", request.headers[HttpHeaders.Authorization])
             assertEquals(APPLICATION_GITHUB_JSON_MEDIA_TYPE, request.headers[HttpHeaders.Accept])
-            assertEquals(GithubApiVersion.V_2022_11_28.version, request.headers[HttpHeaders.GithubApiVersion])
+            assertEquals(V_2022_11_28.version, request.headers[HttpHeaders.GithubApiVersion])
 
             respond(
                 content = ByteReadChannel(
@@ -418,5 +419,123 @@ class GithubApiKtorClientTest {
         )
     }
 
+    @Test
+    fun `downloadArtifact - follows redirect and returns content`() = runTest {
+        val mockBearer = "mock-token"
+        val owner = "testOwner"
+        val repository = "testRepo"
+        val artifactId = 12345L
+        val archiveFormat = "zip"
+        val redirectUrl = "https://storage.example.com/artifact-download-url"
+
+        val testContent = "Test artifact content".encodeToByteArray()
+
+        val mockEngine = createMockEngine {
+            addHandler { request ->
+                assertEquals("$GITHUB_API_PUBLIC_BASE_URL/repos/$owner/$repository/actions/artifacts/$artifactId/$archiveFormat", request.url.toString())
+                assertEquals("Bearer $mockBearer", request.headers[HttpHeaders.Authorization])
+                assertEquals(APPLICATION_GITHUB_JSON_MEDIA_TYPE, request.headers[HttpHeaders.Accept])
+                assertEquals(V_2022_11_28.version, request.headers[HttpHeaders.GithubApiVersion])
+
+                respond(
+                    content = ByteReadChannel(""),
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location to listOf(redirectUrl))
+                )
+            }
+
+            // Second request - actual download from the redirect URL
+            addHandler { request ->
+                assertEquals(redirectUrl, request.url.toString())
+
+                respond(
+                    content = ByteReadChannel(testContent),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(
+                        HttpHeaders.ContentType to listOf("application/zip"),
+                        HttpHeaders.ContentDisposition to listOf("attachment; filename=artifact.zip"),
+                        HttpHeaders.ContentLength to listOf(testContent.size.toString())
+                    )
+                )
+            }
+        }
+
+        val client = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = mockBearer)
+
+        val result = client.downloadArtifact(owner, repository, artifactId, archiveFormat)
+
+        assertEquals(200, result.httpStatus)
+        assertTrue(result is HttpResponseResult.Success)
+        assertContentEquals(testContent, result.data)
+    }
+
+    @Test
+    fun `downloadArtifact - error before redirect`() = runTest {
+        val mockBearer = "mock-token"
+        val owner = "testOwner"
+        val repository = "testRepo"
+        val artifactId = 12345L
+        val archiveFormat = "zip"
+
+        val mockEngine = mockEngine { request ->
+            // Return an error response instead of a redirect
+            respond(
+                content = ByteReadChannel(
+                    //language=JSON
+                    """{"message":"Artifact not found","documentation_url":"https://docs.github.com/rest","status":"404"}"""
+                ),
+                status = HttpStatusCode.NotFound,
+                headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+            )
+        }
+
+        val client = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = mockBearer)
+
+        val result = client.downloadArtifact(owner, repository, artifactId, archiveFormat)
+
+        assertTrue(result is HttpResponseResult.Error<*>)
+        assertEquals(404, result.httpStatus)
+        assertEquals(
+            ErrorResponse(message = "Artifact not found", documentationUrl = "https://docs.github.com/rest", status = "404"),
+            (result as HttpResponseResult.Error<ErrorResponse>).data
+        )
+    }
+
+    @Test
+    fun `downloadArtifact - error during download after redirect`() = runTest {
+        val mockBearer = "mock-token"
+        val owner = "testOwner"
+        val repository = "testRepo"
+        val artifactId = 12345L
+        val archiveFormat = "zip"
+        val redirectUrl = "https://storage.example.com/artifact-download-url"
+
+        val mockEngine = createMockEngine {
+            // First request returns a redirect
+            addHandler { request ->
+                respond(
+                    content = "",
+                    status = HttpStatusCode.Found,
+                    headers = headersOf(HttpHeaders.Location to listOf(redirectUrl))
+                )
+            }
+
+            // Second request (follow redirect) returns an error
+            addHandler { request ->
+                respond(
+                    content = "Access denied or expired download URL",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType to listOf("text/plain"))
+                )
+            }
+        }
+
+        val client = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = mockBearer)
+
+        val result = client.downloadArtifact(owner, repository, artifactId, archiveFormat)
+
+        assertTrue(result is HttpResponseResult.UnexpectedError)
+        assertEquals(403, result.httpStatus)
+    }
 
 }

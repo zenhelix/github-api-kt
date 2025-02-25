@@ -11,10 +11,13 @@ import io.github.zenhelix.github.client.http.ktor.ratelimiter.withRateLimiter
 import io.github.zenhelix.github.client.http.ktor.utils.HttpClientExtensions.result
 import io.github.zenhelix.github.client.http.ktor.utils.acceptGithubJson
 import io.github.zenhelix.github.client.http.ktor.utils.githubApiVersion
+import io.github.zenhelix.github.client.http.model.ArtifactResponse
+import io.github.zenhelix.github.client.http.model.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.CircuitBreakerDataError
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
+import io.github.zenhelix.github.client.http.model.WorkflowRunArtifactsResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
@@ -26,9 +29,16 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
+import io.ktor.http.appendPathSegments
+import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.toMap
+import io.ktor.utils.io.toByteArray
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
@@ -82,12 +92,121 @@ public class GithubApiKtorClient(
         configure()
     }
 
-    override suspend fun artifacts(owner: String, repository: String) {
-        TODO()
-    }
-
     override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = handleCircuitBreaker {
         client.get("$baseUrl/licenses") { bearerAuth(requiredToken(token)) }.result()
+    }
+
+    override suspend fun artifacts(
+        owner: String,
+        repository: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<ArtifactsResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "artifacts")
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun workflowRunArtifacts(
+        owner: String,
+        repository: String,
+        runId: Long,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<WorkflowRunArtifactsResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runs", runId.toString(), "artifacts")
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun artifact(
+        owner: String,
+        repository: String,
+        artifactId: Long,
+        token: String?
+    ): HttpResponseResult<ArtifactResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "artifacts", artifactId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun deleteArtifact(
+        owner: String,
+        repository: String,
+        artifactId: Long,
+        token: String?
+    ): HttpResponseResult<Unit, ErrorResponse> = handleCircuitBreaker {
+        client.delete {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "artifacts", artifactId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun downloadArtifact(
+        owner: String,
+        repository: String,
+        artifactId: Long,
+        archiveFormat: String,
+        token: String?
+    ): HttpResponseResult<ByteArray, ErrorResponse> = handleCircuitBreaker {
+        // According to GitHub API docs, this endpoint returns a 302 redirect to a download URL
+        // The client is configured to follow redirects automatically
+        val response = client.get {
+            url {
+                takeFrom(baseUrl)
+                appendPathSegments("repos", owner, repository, "actions", "artifacts", artifactId.toString(), archiveFormat)
+            }
+            bearerAuth(requiredToken(token))
+        }
+
+        try {
+            if (response.status.value in 200..299) {
+                HttpResponseResult.Success(
+                    data = response.bodyAsChannel().toByteArray(),
+                    httpStatus = response.status.value,
+                    httpHeaders = response.headers.toMap()
+                )
+            } else {
+                try {
+                    val errorBody = response.bodyAsText()
+                    val errorResponse = Json.decodeFromString<ErrorResponse>(errorBody)
+                    HttpResponseResult.Error(
+                        data = errorResponse,
+                        httpStatus = response.status.value,
+                        httpHeaders = response.headers.toMap()
+                    )
+                } catch (e: Exception) {
+                    HttpResponseResult.UnexpectedError(
+                        cause = e,
+                        httpStatus = response.status.value,
+                        httpHeaders = response.headers.toMap()
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            HttpResponseResult.UnexpectedError(
+                cause = e,
+                httpStatus = response.status.value,
+                httpHeaders = response.headers.toMap()
+            )
+        }
     }
 
     public fun close() {
