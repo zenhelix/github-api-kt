@@ -4,6 +4,9 @@ import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_B
 import io.github.zenhelix.github.client.http.GithubCoroutineApi
 import io.github.zenhelix.github.client.http.model.ArtifactResponse
 import io.github.zenhelix.github.client.http.model.ArtifactsResponse
+import io.github.zenhelix.github.client.http.model.CacheListResponse
+import io.github.zenhelix.github.client.http.model.CacheUsageResponse
+import io.github.zenhelix.github.client.http.model.DeleteCachesByKeyResponse
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
@@ -82,5 +85,44 @@ public class GithubApiWebfluxClient(
     }
 
     private fun requiredToken(token: String?): String = token ?: defaultToken ?: throw IllegalArgumentException("Token is required")
+    override suspend fun listCachesForRepository(
+        owner: String,
+        repository: String,
+        key: String?,
+        ref: String?,
+        sort: String,
+        direction: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<CacheListResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getCacheUsageForRepository(
+        owner: String,
+        repository: String,
+        token: String?
+    ): HttpResponseResult<CacheUsageResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteCache(
+        owner: String,
+        repository: String,
+        cacheId: Long,
+        token: String?
+    ): HttpResponseResult<Unit, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteCachesByKey(
+        owner: String,
+        repository: String,
+        key: String,
+        token: String?
+    ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
 
 }

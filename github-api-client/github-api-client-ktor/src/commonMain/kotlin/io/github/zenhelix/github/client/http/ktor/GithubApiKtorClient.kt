@@ -13,7 +13,10 @@ import io.github.zenhelix.github.client.http.ktor.utils.acceptGithubJson
 import io.github.zenhelix.github.client.http.ktor.utils.githubApiVersion
 import io.github.zenhelix.github.client.http.model.ArtifactResponse
 import io.github.zenhelix.github.client.http.model.ArtifactsResponse
+import io.github.zenhelix.github.client.http.model.CacheListResponse
+import io.github.zenhelix.github.client.http.model.CacheUsageResponse
 import io.github.zenhelix.github.client.http.model.CircuitBreakerDataError
+import io.github.zenhelix.github.client.http.model.DeleteCachesByKeyResponse
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
@@ -225,4 +228,71 @@ public class GithubApiKtorClient(
             cause = e
         )
     }
+    override suspend fun listCachesForRepository(
+        owner: String,
+        repository: String,
+        key: String?,
+        ref: String?,
+        sort: String,
+        direction: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<CacheListResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "caches")
+                key?.let { parameters.append("key", it) }
+                ref?.let { parameters.append("ref", it) }
+                parameters.append("sort", sort)
+                parameters.append("direction", direction)
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun getCacheUsageForRepository(
+        owner: String,
+        repository: String,
+        token: String?
+    ): HttpResponseResult<CacheUsageResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "cache", "usage")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun deleteCache(
+        owner: String,
+        repository: String,
+        cacheId: Long,
+        token: String?
+    ): HttpResponseResult<Unit, ErrorResponse> = handleCircuitBreaker {
+        client.delete {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "caches", cacheId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun deleteCachesByKey(
+        owner: String,
+        repository: String,
+        key: String,
+        token: String?
+    ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse> = handleCircuitBreaker {
+        client.delete {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "caches")
+                parameters.append("key", key)
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
 }
+

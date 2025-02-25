@@ -2,12 +2,15 @@ package io.github.zenhelix.github.client.http
 
 import io.github.zenhelix.github.client.http.model.ArtifactResponse
 import io.github.zenhelix.github.client.http.model.ArtifactsResponse
+import io.github.zenhelix.github.client.http.model.CacheListResponse
+import io.github.zenhelix.github.client.http.model.CacheUsageResponse
+import io.github.zenhelix.github.client.http.model.DeleteCachesByKeyResponse
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.github.zenhelix.github.client.http.model.WorkflowRunArtifactsResponse
 
-public interface GithubApi : GithubActionsApi, GithubLicensesApi
+public interface GithubApi : GithubActionsApi, GithubCacheApi, GithubLicensesApi
 
 public interface GithubLicensesApi {
 
@@ -115,4 +118,92 @@ public interface GithubActionsApi {
         token: String? = null
     ): HttpResponseResult<ByteArray, ErrorResponse>
 
+}
+
+/**
+ * Synchronous interface for GitHub Actions Cache API.
+ */
+public interface GithubCacheApi {
+
+    /**
+     * Lists GitHub Actions caches for a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param key The full or partial cache key to filter results.
+     * @param ref The full Git reference to filter results. The ref can be a branch, tag, or a commit SHA.
+     * @param sort The property to sort the results by. Default: "last_accessed_at".
+     *             Must be one of: "created_at", "last_accessed_at", "size_in_bytes".
+     * @param direction The direction to sort the results by. Default: "desc".
+     *                  Must be one of: "asc", "desc".
+     * @param perPage The number of results per page (max 100). Default: 30
+     * @param page Page number of the results to fetch. Default: 1
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of caches or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#list-github-actions-caches-for-a-repository)
+     */
+    public fun listCachesForRepository(
+        owner: String,
+        repository: String,
+        key: String? = null,
+        ref: String? = null,
+        sort: String = "last_accessed_at",
+        direction: String = "desc",
+        perPage: Int = 30,
+        page: Int = 1,
+        token: String? = null
+    ): HttpResponseResult<CacheListResponse, ErrorResponse>
+
+    /**
+     * Gets GitHub Actions cache usage for a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the cache usage statistics or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#get-github-actions-cache-usage-for-a-repository)
+     */
+    public fun getCacheUsageForRepository(
+        owner: String,
+        repository: String,
+        token: String? = null
+    ): HttpResponseResult<CacheUsageResponse, ErrorResponse>
+
+    /**
+     * Deletes a GitHub Actions cache for a repository using a cache ID.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param cacheId The unique identifier of the cache to delete.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] indicating success or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-a-github-actions-cache-for-a-repository-using-a-cache-id)
+     */
+    public fun deleteCache(
+        owner: String,
+        repository: String,
+        cacheId: Long,
+        token: String? = null
+    ): HttpResponseResult<Unit, ErrorResponse>
+
+    /**
+     * Deletes GitHub Actions caches for a repository using a key.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param key A key identifying the cache to delete. All caches that match the key will be deleted.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] indicating success or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-github-actions-caches-for-a-repository-using-a-cache-key)
+     */
+    public fun deleteCachesByKey(
+        owner: String,
+        repository: String,
+        key: String,
+        token: String? = null
+    ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse>
 }
