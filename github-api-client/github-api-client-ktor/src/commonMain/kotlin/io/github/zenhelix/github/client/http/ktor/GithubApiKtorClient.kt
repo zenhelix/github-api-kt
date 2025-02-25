@@ -64,6 +64,7 @@ public class GithubApiKtorClient(
                 failureThreshold = 4
                 halfOpenFailureThreshold = 2
                 resetInterval = 1.seconds
+                maxHalfOpenAttempts = 5
                 failureTrigger = { status.value >= 400 }
 
                 circuitBreakerConfig()

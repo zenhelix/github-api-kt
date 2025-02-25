@@ -32,6 +32,7 @@ public class RateLimiterConfig {
 
         public var remainingThreshold: Int = 0
         public var defaultResetDelay: Duration = 60.seconds
+        public var safetyMargin: Duration = 0.5.seconds
 
         public var rateLimitExceededTrigger: HttpResponse.() -> Boolean = { status == HttpStatusCode.TooManyRequests }
 
@@ -43,6 +44,7 @@ public class RateLimiterConfig {
             resourceHeader = resourceHeader,
             remainingThreshold = remainingThreshold,
             defaultResetDelay = defaultResetDelay,
+            safetyMargin = safetyMargin,
             rateLimitExceededTrigger = rateLimitExceededTrigger
         )
     }

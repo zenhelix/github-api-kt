@@ -26,14 +26,17 @@ internal class RateLimiter(
 
             rateLimits.values.forEach { data ->
                 data.reset?.let { resetTime ->
-                    if ((data.remaining ?: Int.MAX_VALUE) <= config.remainingThreshold && resetTime > now) {
-                        val waitTime = resetTime - now
+                    // Add a small margin to ensure we're truly past the reset time
+                    val remainingCount = data.remaining ?: Int.MAX_VALUE
+                    if (remainingCount <= config.remainingThreshold && resetTime > now) {
+                        val waitTime = resetTime - now + config.safetyMargin
                         if (waitTime > delayNeeded) {
                             delayNeeded = waitTime
                         }
                     }
                 }
             }
+
             if (delayNeeded.inWholeSeconds > 0) {
                 delay(delayNeeded)
             }
@@ -42,21 +45,18 @@ internal class RateLimiter(
 
     suspend fun handleResponse(response: HttpResponse) {
         val data = fromHttpHeaders(response.headers)
-        // Если ресурс не указан, используем дефолтный ресурс на основе имени rate limiter
         val resource = data.resource ?: name.value
 
         mutex.withLock {
             if (config.rateLimitExceededTrigger(response)) {
-                // Если сработал триггер превышения лимита
                 rateLimits[resource] = data.copy(
                     remaining = 0,
                     reset = data.reset ?: (clock.now() + config.defaultResetDelay)
                 )
             } else if (data.limit != null || data.remaining != null || data.reset != null) {
-                // Обновляем только если в ответе есть информация о лимитах
+                // Update only if the response contains information about limits
                 val existingData = rateLimits[resource]
                 if (existingData != null) {
-                    // Обновляем существующие данные только с новыми значениями
                     rateLimits[resource] = existingData.copy(
                         limit = data.limit ?: existingData.limit,
                         remaining = data.remaining ?: existingData.remaining,
@@ -64,7 +64,6 @@ internal class RateLimiter(
                         used = data.used ?: existingData.used
                     )
                 } else {
-                    // Сохраняем новые данные
                     rateLimits[resource] = data
                 }
             }
@@ -88,5 +87,6 @@ internal data class RateLimitConfiguration(
     val resourceHeader: String,
     val remainingThreshold: Int,
     val defaultResetDelay: Duration,
+    val safetyMargin: Duration,
     val rateLimitExceededTrigger: HttpResponse.() -> Boolean
 )

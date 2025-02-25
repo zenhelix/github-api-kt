@@ -30,7 +30,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -82,7 +81,7 @@ class RateLimiterTest {
         val elapsedSeconds = clock().now() - startTime
         assertTrue(
             elapsedSeconds >= resetDelay,
-            "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetDelay"
+            "Should wait for rate limit reset. Elapsed: $elapsedSeconds, expected >= $resetDelay"
         )
     }
 
@@ -123,24 +122,24 @@ class RateLimiterTest {
             defaultRequest { withRateLimiter() }
             install(RateLimiting) {
                 global(clock = clock()) {
-                    remainingThreshold = 10 // Приостанавливаться, когда оставшиеся запросы <= 10
+                    remainingThreshold = 10 // Pause when remaining requests <= 10
                 }
             }
         }
 
-        // Первый запрос - нормальный
+        // First request - normal
         client.get("https://api.example.com")
         runCurrent()
 
-        // Второй запрос должен ждать, потому что remaining <= порога
+        // Second request should wait because remaining <= threshold
         val startTime = clock().now()
         client.get("https://api.example.com/limit")
 
-        // Время должно было продвинуться вперед на время сброса
+        // Time should have advanced forward by reset time
         val elapsedSeconds = clock().now() - startTime
         assertTrue(
             elapsedSeconds >= resetDelay,
-            "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetDelay"
+            "Should wait for rate limit reset. Elapsed: $elapsedSeconds, expected >= $resetDelay"
         )
     }
 
@@ -188,7 +187,7 @@ class RateLimiterTest {
             }
         }
 
-        // Первый запрос - api1 (с ограничением)
+        // First request - api1 (with limitation)
         client.requestWithRateLimiter(api1Name) {
             url("https://api.example.com/api1")
         }
@@ -196,30 +195,30 @@ class RateLimiterTest {
 
         val startTime = clock().now()
 
-        // Второй запрос к api1 должен ждать
+        // Second request to api1 should wait
         client.requestWithRateLimiter(api1Name) {
             url("https://api.example.com/api1")
         }
 
-        // Должен был подождать сброса ограничения rate limit (5 секунд)
+        // Should have waited for rate limit reset (5 seconds)
         val elapsedAfterApi1 = clock().now() - startTime
         assertTrue(
             elapsedAfterApi1 >= resetDelay,
-            "Должен ждать сброса ограничения rate limit для api1. Прошло: $elapsedAfterApi1, ожидалось >= $resetDelay"
+            "Should wait for rate limit reset for api1. Elapsed: $elapsedAfterApi1, expected >= $resetDelay"
         )
 
         val timeBeforeApi2 = clock().now()
 
-        // Запрос к api2 не должен ждать (есть доступные запросы)
+        // Request to api2 should not wait (has available requests)
         client.requestWithRateLimiter(api2Name) {
             url("https://api.example.com/api2")
         }
 
-        // Для api2 не должно быть задержки
+        // For api2 there should be no delay
         val elapsedForApi2 = clock().now() - timeBeforeApi2
         assertTrue(
             elapsedForApi2 < resetDelay,
-            "Не должен ждать для api2. Прошло: $elapsedForApi2, должно быть < $resetDelay"
+            "Should not wait for api2. Elapsed: $elapsedForApi2, should be < $resetDelay"
         )
     }
 
@@ -229,7 +228,7 @@ class RateLimiterTest {
 
         val mockEngine = createMockEngine {
             addHandler {
-                // Первый запрос возвращает 429 Too Many Requests
+                // First request returns 429 Too Many Requests
                 respond(
                     content = ByteReadChannel("Rate limit exceeded"),
                     status = HttpStatusCode.TooManyRequests,
@@ -241,7 +240,7 @@ class RateLimiterTest {
                     )
                 )
             }
-            // Последующие запросы возвращают OK
+            // Subsequent requests return OK
             addHandler {
                 respond(
                     content = ByteReadChannel("Success"),
@@ -263,19 +262,19 @@ class RateLimiterTest {
             }
         }
 
-        // Первый запрос - должен получить 429
+        // First request - should get 429
         client.get("https://api.example.com")
         runCurrent()
 
-        // Второй запрос - должен ждать из-за ограничения
+        // Second request - should wait due to rate limit
         val startTime = clock().now()
         val response = client.get("https://api.example.com")
 
-        // Должен был подождать сброса ограничения
+        // Should have waited for rate limit reset
         val elapsed = clock().now() - startTime
         assertTrue(
             elapsed >= resetDelay,
-            "Должен ждать сброса ограничения rate limit после 429. Прошло: $elapsed, ожидалось >= $resetDelay"
+            "Should wait for rate limit reset after 429. Elapsed: $elapsed, expected >= $resetDelay"
         )
         assertEquals(HttpStatusCode.OK, response.status)
     }
@@ -283,6 +282,7 @@ class RateLimiterTest {
     @Test
     fun `rate limiter respects manual time advancement`() = runTest {
         val resetDelay = 5.seconds
+        val safetyMargin = 0.5.seconds
 
         val mockEngine = mockEngine {
             respond(
@@ -304,28 +304,67 @@ class RateLimiterTest {
             }
         }
 
-        // Первый запрос устанавливает данные о rate limit
+        // First request sets up rate limit data
         client.get("https://api.example.com")
         runCurrent()
 
-        // Запускаем второй запрос, который должен быть заблокирован ограничением
+        // Start a second request, which should be blocked by the rate limit
         var secondRequestCompleted = false
 
-        // Начинаем второй запрос, но не ждем его завершения
+        // Begin the second request, but don't wait for it to complete
         async {
             client.get("https://api.example.com")
             secondRequestCompleted = true
         }
 
-        // Проверяем, что запрос еще не завершен
+        // Check that the request hasn't completed yet
         runCurrent()
-        assertFalse(secondRequestCompleted, "Запрос не должен завершиться до продвижения времени")
+        assertFalse(secondRequestCompleted, "Request should not complete before time advancement")
 
-        // Продвигаем время вперед чуть больше, чем период сброса
-        advanceTimeBy(resetDelay + 100.milliseconds)
+        // Advance time slightly more than the reset period
+        advanceTimeBy(resetDelay + safetyMargin)
         runCurrent()
 
-        // Теперь запрос должен завершиться
-        assertTrue(secondRequestCompleted, "Запрос должен завершиться после продвижения времени")
+        // Now the request should be complete
+        assertTrue(secondRequestCompleted, "Request should complete after time advancement")
+    }
+
+    @Test
+    fun `rate limiter adds safety margin to wait time`() = runTest {
+        val resetDelay = 5.seconds
+        val safetyMargin = 0.5.seconds
+
+        val mockEngine = mockEngine {
+            respond(
+                content = ByteReadChannel("{}"),
+                status = HttpStatusCode.OK,
+                headers = headersOf(
+                    HttpHeaders.RateLimitLimit to listOf("60"),
+                    HttpHeaders.RateLimitRemaining to listOf("0"),
+                    HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
+                    HttpHeaders.RateLimitResource to listOf("core")
+                )
+            )
+        }
+
+        val client = HttpClient(mockEngine) {
+            defaultRequest { withRateLimiter() }
+            install(RateLimiting) {
+                global(clock = clock())
+            }
+        }
+
+        // First request, sets up rate limit data
+        client.get("https://api.example.com")
+
+        // Second request, should wait for reset time plus safety margin
+        val startTime = clock().now()
+        client.get("https://api.example.com")
+
+        val elapsed = clock().now() - startTime
+        assertTrue(
+            elapsed >= resetDelay + safetyMargin,
+            "Should wait for reset time plus safety margin. Elapsed: $elapsed, expected >= ${resetDelay + safetyMargin}"
+        )
     }
 }

@@ -20,6 +20,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -266,6 +267,102 @@ class GithubApiKtorClientTest {
         )
     }
 
+    @Test
+    fun `circuit breaker limits concurrent requests in half-open state`() = runTest {
+        val resetInterval = 10.seconds
+        val failureThreshold = 3
+        val maxHalfOpenAttempts = 2 // Only allow 2 concurrent requests in HALF_OPEN state
+
+        val mockEngine = createMockEngine {
+            // First set of requests - errors to trigger circuit opening
+            repeat(failureThreshold) {
+                addHandler {
+                    respond(
+                        content = ByteReadChannel(
+                            //language=JSON
+                            """{"message":"Server Error","documentation_url":"https://docs.github.com/rest","status":"500"}"""
+                        ),
+                        status = HttpStatusCode.InternalServerError,
+                        headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+                    )
+                }
+            }
+
+            // After circuit opens and resets to HALF_OPEN, these will be the responses
+            // Add more than maxHalfOpenAttempts successful responses
+            repeat(maxHalfOpenAttempts + 3) {
+                addHandler {
+                    respond(
+                        content = ByteReadChannel(
+                            //language=JSON
+                            "[]"
+                        ),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+                    )
+                }
+            }
+        }
+
+        val client = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = "mock", circuitBreakerConfig = {
+            this.failureThreshold = failureThreshold
+            this.resetInterval = resetInterval
+            this.maxHalfOpenAttempts = maxHalfOpenAttempts
+        })
+
+        val expectedErrorResponse = ErrorResponse(
+            message = "Server Error",
+            documentationUrl = "https://docs.github.com/rest",
+            status = "500"
+        )
+
+        // Make enough failing requests to open the circuit
+        repeat(failureThreshold) {
+            val result = client.licenses()
+            assertTrue(result is HttpResponseResult.Error)
+            assertEquals(expectedErrorResponse, result.data)
+        }
+
+        // Next request should be blocked by the open circuit
+        val circuitBlockedResult = client.licenses()
+        assertTrue(circuitBlockedResult is HttpResponseResult.CircuitBreakerError)
+
+        // Advance time to allow circuit breaker to transition to HALF_OPEN
+        advanceTimeBy(resetInterval + 1.seconds)
+        runCurrent()
+
+        // Create concurrent requests that exceed maxHalfOpenAttempts
+        val results = mutableListOf<HttpResponseResult<*, *>>()
+        val concurrentRequests = maxHalfOpenAttempts + 2 // Exceed the limit by 2
+
+        // Launch concurrent requests
+        val deferreds = List(concurrentRequests) {
+            async {
+                client.licenses()
+            }
+        }
+
+        // Wait for all requests to complete
+        runCurrent()
+        deferreds.forEach { deferred ->
+            results.add(deferred.await())
+        }
+
+        // Count successful requests and circuit breaker errors
+        val successCount = results.count { it is HttpResponseResult.Success }
+        val circuitBreakerErrorCount = results.count { it is HttpResponseResult.CircuitBreakerError }
+
+        // Verify only maxHalfOpenAttempts succeeded, others got circuit breaker errors
+        assertEquals(
+            maxHalfOpenAttempts, successCount,
+            "Only $maxHalfOpenAttempts requests should succeed in HALF_OPEN state"
+        )
+        assertEquals(
+            concurrentRequests - maxHalfOpenAttempts, circuitBreakerErrorCount,
+            "Requests exceeding maxHalfOpenAttempts should be rejected with CircuitBreakerError"
+        )
+    }
+
     @Test fun `rate limiter without header`() = runTest {
         val mockEngine = mockEngine {
             respond(
@@ -317,7 +414,9 @@ class GithubApiKtorClientTest {
         val elapsed = clock().now() - startTime
         assertTrue(
             elapsed >= delay,
-            "Должен был ждать сброса ограничения rate limit. Прошло: ${elapsed.inWholeSeconds}с, ожидалось >= ${delay.inWholeSeconds}с"
+            "Should have waited for rate limit reset. Elapsed: ${elapsed.inWholeSeconds}s, expected >= ${delay.inWholeSeconds}s"
         )
     }
+
+
 }

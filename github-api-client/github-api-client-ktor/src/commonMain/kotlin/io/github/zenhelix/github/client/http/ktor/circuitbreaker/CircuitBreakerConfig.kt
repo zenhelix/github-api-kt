@@ -1,7 +1,5 @@
 package io.github.zenhelix.github.client.http.ktor.circuitbreaker
 
-import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerState.HALF_OPEN
-import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerState.OPEN
 import io.ktor.client.statement.HttpResponse
 import io.ktor.util.collections.ConcurrentMap
 import kotlinx.datetime.Clock
@@ -21,22 +19,27 @@ public class CircuitBreakerConfig {
 
     public class CircuitBreakerBuilder {
         /**
-         * How many failures are to be tolerated before the circuit moves to [HALF_OPEN].
+         * How many failures are to be tolerated before the circuit moves to OPEN.
          */
         public var failureThreshold: Int = 3
 
         /**
-         * How many attempts are allowed in [HALF_OPEN] state.
+         * How many failures are allowed in HALF_OPEN state before going back to OPEN.
          */
         public var halfOpenFailureThreshold: Int = 2
 
         /**
-         * How long to wait before moving from [OPEN] to [HALF_OPEN].
+         * How long to wait before moving from OPEN to HALF_OPEN.
          */
         public var resetInterval: Duration = 1.seconds
 
         /**
-         * What is considered a failure. default is [HttpResponse.status] >= 400
+         * Maximum number of concurrent requests allowed in HALF_OPEN state.
+         */
+        public var maxHalfOpenAttempts: Int = 5
+
+        /**
+         * What is considered a failure. Default is HttpResponse.status >= 400
          */
         public var failureTrigger: HttpResponse.() -> Boolean = { status.value >= 400 }
 
@@ -44,6 +47,7 @@ public class CircuitBreakerConfig {
             failureThreshold = failureThreshold,
             halfOpenFailureThreshold = halfOpenFailureThreshold,
             resetInterval = resetInterval,
+            maxHalfOpenAttempts = maxHalfOpenAttempts,
             failureTrigger = failureTrigger
         )
     }
