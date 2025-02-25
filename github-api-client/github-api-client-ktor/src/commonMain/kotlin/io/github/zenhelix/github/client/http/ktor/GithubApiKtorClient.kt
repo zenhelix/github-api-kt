@@ -42,6 +42,8 @@ public class GithubApiKtorClient(
 ) : GithubCoroutineApi {
 
     private val client: HttpClient = HttpClient(engine) {
+        followRedirects = true
+
         defaultRequest {
             acceptGithubJson()
             githubApiVersion()
