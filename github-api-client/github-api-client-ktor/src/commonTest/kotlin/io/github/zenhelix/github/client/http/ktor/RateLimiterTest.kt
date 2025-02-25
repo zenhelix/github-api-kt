@@ -29,6 +29,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -86,26 +87,35 @@ class RateLimiterTest {
 
     @Test
     fun `rate limiter with custom config`() = runTest {
-        val resetSeconds = 10L
-        var requestCount = 0
+        val resetSeconds = 10.seconds
 
-        val mockEngine = mockEngine {
-            requestCount++
-            val isLimitedRequest = it.url.toString().contains("limit") || requestCount > 1
+        val mockEngine = createMockEngine {
 
-            val remaining = if (isLimitedRequest) "5" else "20"
-            val reset = (clock().now().epochSeconds + resetSeconds).toString()
-
-            respond(
-                content = ByteReadChannel("{}"),
-                status = if (isLimitedRequest && requestCount == 1) HttpStatusCode.TooManyRequests else HttpStatusCode.OK,
-                headers = headersOf(
-                    HttpHeaders.RateLimitLimit to listOf("60"),
-                    HttpHeaders.RateLimitRemaining to listOf(remaining),
-                    HttpHeaders.RateLimitReset to listOf(reset),
-                    HttpHeaders.RateLimitResource to listOf("core")
+            addHandler {
+                respond(
+                    content = "{}",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(
+                        HttpHeaders.RateLimitLimit to listOf("60"),
+                        HttpHeaders.RateLimitRemaining to listOf("5"),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitResource to listOf("core")
+                    )
                 )
-            )
+            }
+
+            addHandler {
+                respond(
+                    content = "{}",
+                    status = HttpStatusCode.TooManyRequests,
+                    headers = headersOf(
+                        HttpHeaders.RateLimitLimit to listOf("60"),
+                        HttpHeaders.RateLimitRemaining to listOf("20"),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitResource to listOf("core")
+                    )
+                )
+            }
         }
 
         val client = HttpClient(mockEngine) {
@@ -122,11 +132,11 @@ class RateLimiterTest {
         runCurrent()
 
         // Второй запрос должен ждать, потому что remaining <= порога
-        val startTime = clock().now().epochSeconds
+        val startTime = clock().now()
         client.get("https://api.example.com/limit")
 
         // Время должно было продвинуться вперед на время сброса
-        val elapsedSeconds = clock().now().epochSeconds - startTime
+        val elapsedSeconds = clock().now() - startTime
         assertTrue(
             elapsedSeconds >= resetSeconds,
             "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetSeconds"
@@ -135,23 +145,35 @@ class RateLimiterTest {
 
     @Test
     fun `multiple rate limiters for different resources`() = runTest {
-        val resetSeconds = 5L
+        val resetSeconds = 5.seconds
 
         val api1Name = RateLimiterName("api1")
         val api2Name = RateLimiterName("api2")
 
         val mockEngine = mockEngine { request ->
-            val resource = if (request.url.toString().contains("api1")) "api1" else "api2"
-            val remaining = if (resource == "api1") "0" else "10"
-            val reset = (clock().now().epochSeconds + (if (resource == "api1") resetSeconds else 0)).toString()
+            val resource = if (request.url.toString().contains("api1")) {
+                "api1"
+            } else {
+                "api2"
+            }
+            val remaining = if (resource == "api1") {
+                0
+            } else {
+                10
+            }
+            val reset = (clock().now() + if (resource == "api1") {
+                resetSeconds
+            } else {
+                0.seconds
+            })
 
             respond(
-                content = ByteReadChannel("{}"),
+                content = "{}",
                 status = HttpStatusCode.OK,
                 headers = headersOf(
                     HttpHeaders.RateLimitLimit to listOf("60"),
-                    HttpHeaders.RateLimitRemaining to listOf(remaining),
-                    HttpHeaders.RateLimitReset to listOf(reset),
+                    HttpHeaders.RateLimitRemaining to listOf(remaining.toString()),
+                    HttpHeaders.RateLimitReset to listOf(reset.epochSeconds.toString()),
                     HttpHeaders.RateLimitResource to listOf(resource)
                 )
             )
@@ -171,7 +193,7 @@ class RateLimiterTest {
         }
         runCurrent()
 
-        val startTime = clock().now().epochSeconds
+        val startTime = clock().now()
 
         // Второй запрос к api1 должен ждать
         client.requestWithRateLimiter(api1Name) {
@@ -179,13 +201,13 @@ class RateLimiterTest {
         }
 
         // Должен был подождать сброса ограничения rate limit (5 секунд)
-        val elapsedAfterApi1 = clock().now().epochSeconds - startTime
+        val elapsedAfterApi1 = clock().now() - startTime
         assertTrue(
             elapsedAfterApi1 >= resetSeconds,
             "Должен ждать сброса ограничения rate limit для api1. Прошло: $elapsedAfterApi1, ожидалось >= $resetSeconds"
         )
 
-        val timeBeforeApi2 = clock().now().epochSeconds
+        val timeBeforeApi2 = clock().now()
 
         // Запрос к api2 не должен ждать (есть доступные запросы)
         client.requestWithRateLimiter(api2Name) {
@@ -193,7 +215,7 @@ class RateLimiterTest {
         }
 
         // Для api2 не должно быть задержки
-        val elapsedForApi2 = clock().now().epochSeconds - timeBeforeApi2
+        val elapsedForApi2 = clock().now() - timeBeforeApi2
         assertTrue(
             elapsedForApi2 < resetSeconds,
             "Не должен ждать для api2. Прошло: $elapsedForApi2, должно быть < $resetSeconds"
@@ -202,13 +224,10 @@ class RateLimiterTest {
 
     @Test
     fun `rate limiter handles 429 status correctly`() = runTest {
-        val resetSeconds = 5L
-        var requestCount = 0
+        val resetSeconds = 5.seconds
 
-        val mockEngine = mockEngine {
-            requestCount++
-
-            if (requestCount == 1) {
+        val mockEngine = createMockEngine {
+            addHandler {
                 // Первый запрос возвращает 429 Too Many Requests
                 respond(
                     content = ByteReadChannel("Rate limit exceeded"),
@@ -216,19 +235,20 @@ class RateLimiterTest {
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("0"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now().epochSeconds + resetSeconds).toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
-            } else {
-                // Последующие запросы возвращают OK
+            }
+            // Последующие запросы возвращают OK
+            addHandler {
                 respond(
                     content = ByteReadChannel("Success"),
                     status = HttpStatusCode.OK,
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("59"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now().epochSeconds + 3600).toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + 1.hours).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
@@ -247,11 +267,11 @@ class RateLimiterTest {
         runCurrent()
 
         // Второй запрос - должен ждать из-за ограничения
-        val startTime = clock().now().epochSeconds
+        val startTime = clock().now()
         val response = client.get("https://api.example.com")
 
         // Должен был подождать сброса ограничения
-        val elapsed = clock().now().epochSeconds - startTime
+        val elapsed = clock().now() - startTime
         assertTrue(
             elapsed >= resetSeconds,
             "Должен ждать сброса ограничения rate limit после 429. Прошло: $elapsed, ожидалось >= $resetSeconds"
