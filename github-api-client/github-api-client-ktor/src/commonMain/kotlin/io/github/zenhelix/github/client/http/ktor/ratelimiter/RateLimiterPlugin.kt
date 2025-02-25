@@ -18,9 +18,7 @@ public val RateLimiting: ClientPlugin<RateLimiterConfig> = createClientPlugin("R
         pluginConfig.global?.also { put(RATE_LIMITER_NAME_GLOBAL, it) }
     }.also { require(it.isNotEmpty()) { "At least one rate limiter must be specified" } }
 
-    client.rateLimiterRegistry().putAll(instances.mapValues {
-        it.value.apply { initialize(client.engine.dispatcher) }
-    })
+    client.rateLimiterRegistry().putAll(instances)
 
     rateLimiterPluginBuilder()
 }

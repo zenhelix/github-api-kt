@@ -2,16 +2,13 @@ package io.github.zenhelix.github.client.http.ktor.ratelimiter
 
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Headers
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Clock.System
 import kotlinx.datetime.Instant
-import kotlin.properties.Delegates
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 internal class RateLimiter(
     private val name: RateLimiterName,
@@ -21,29 +18,23 @@ internal class RateLimiter(
     private val rateLimits = mutableMapOf<String, RateLimitData>()
     private val mutex = Mutex()
 
-    private var scope: CoroutineScope by Delegates.notNull()
-
-    internal fun initialize(dispatcher: CoroutineDispatcher) {
-        scope = CoroutineScope(dispatcher)
-    }
-
     suspend fun waitIfNeeded() {
         mutex.withLock {
             val now = clock.now()
-            var delayNeeded = 0L
+            var delayNeeded = 0.seconds
 
             rateLimits.values.forEach { data ->
                 data.reset?.let { resetTime ->
                     if ((data.remaining ?: Int.MAX_VALUE) <= config.remainingThreshold && resetTime > now) {
-                        val waitTime = resetTime.toEpochMilliseconds() - now.toEpochMilliseconds()
+                        val waitTime = resetTime - now
                         if (waitTime > delayNeeded) {
                             delayNeeded = waitTime
                         }
                     }
                 }
             }
-            if (delayNeeded > 0) {
-                delay(delayNeeded.milliseconds)
+            if (delayNeeded.inWholeSeconds > 0) {
+                delay(delayNeeded)
             }
         }
     }
@@ -77,14 +68,6 @@ internal class RateLimiter(
                 }
             }
         }
-    }
-
-    suspend fun getMaxResetTime(): Long = mutex.withLock {
-        rateLimits.values.maxOfOrNull { it.reset?.toEpochMilliseconds() ?: 0 } ?: 0
-    }
-
-    suspend fun getRateLimits(): Map<String, RateLimitData> = mutex.withLock {
-        rateLimits.toMap()
     }
 
     private fun fromHttpHeaders(headers: Headers): RateLimitData = RateLimitData(

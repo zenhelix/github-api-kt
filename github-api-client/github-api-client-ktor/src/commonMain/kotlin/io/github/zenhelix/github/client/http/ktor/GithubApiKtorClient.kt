@@ -78,9 +78,7 @@ public class GithubApiKtorClient(
     }
 
     override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = handleCircuitBreaker {
-        client.get("$baseUrl/licenses") {
-            bearerAuth(requiredToken(token))
-        }.result()
+        client.get("$baseUrl/licenses") { bearerAuth(requiredToken(token)) }.result()
     }
 
     public fun close() {
@@ -91,14 +89,12 @@ public class GithubApiKtorClient(
 
     private suspend inline fun <T : Any, E : Any> handleCircuitBreaker(
         crossinline block: suspend () -> HttpResponseResult<T, E>
-    ): HttpResponseResult<T, E> {
-        return try {
-            block()
-        } catch (e: CircuitBreakerException) {
-            HttpResponseResult.CircuitBreakerError(
-                data = CircuitBreakerDataError(e.nextHalfOpenTime.toEpochMilliseconds()),
-                cause = e
-            )
-        }
+    ): HttpResponseResult<T, E> = try {
+        block()
+    } catch (e: CircuitBreakerException) {
+        HttpResponseResult.CircuitBreakerError(
+            data = CircuitBreakerDataError(e.nextHalfOpenTime.toEpochMilliseconds()),
+            cause = e
+        )
     }
 }
