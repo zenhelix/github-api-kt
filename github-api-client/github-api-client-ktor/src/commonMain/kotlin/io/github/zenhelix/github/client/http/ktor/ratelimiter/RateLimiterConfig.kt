@@ -34,23 +34,33 @@ public class RateLimiterConfig {
         public var defaultResetDelay: Duration = 60.seconds
 
         public var rateLimitExceededTrigger: HttpResponse.() -> Boolean = { status == HttpStatusCode.TooManyRequests }
+
+        internal fun build(): RateLimitConfiguration = RateLimitConfiguration(
+            limitHeader = limitHeader,
+            remainingHeader = remainingHeader,
+            resetHeader = resetHeader,
+            usedHeader = usedHeader,
+            resourceHeader = resourceHeader,
+            remainingThreshold = remainingThreshold,
+            defaultResetDelay = defaultResetDelay,
+            rateLimitExceededTrigger = rateLimitExceededTrigger
+        )
     }
 
+    @RateLimiterDsl
     public fun rateLimiter(name: RateLimiterName, clock: Clock = System, builder: RateLimiterBuilder.() -> Unit = {}) {
+        require(!rateLimiters.containsKey(name)) { "Circuit Breaker with name $name is already registered" }
         val config = RateLimiterBuilder().apply(builder)
-        rateLimiters[name] = RateLimiter(name, clock = clock, config = config)
+        rateLimiters[name] = RateLimiter(name, clock = clock, config = config.build())
     }
 
+    @RateLimiterDsl
     public fun global(clock: Clock = System, builder: RateLimiterBuilder.() -> Unit = {}) {
         val config = RateLimiterBuilder().apply(builder)
-        global = RateLimiter(RATE_LIMITER_NAME_GLOBAL, clock = clock, config = config)
+        global = RateLimiter(RATE_LIMITER_NAME_GLOBAL, clock = clock, config = config.build())
     }
 
 }
 
 @JvmInline
-public value class RateLimiterName(public val value: String) {
-    public companion object {
-        public fun String.toRateLimiterName() = RateLimiterName(this)
-    }
-}
+public value class RateLimiterName(public val value: String)

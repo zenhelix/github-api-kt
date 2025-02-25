@@ -8,12 +8,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Clock.System
 import kotlinx.datetime.Instant
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 internal class RateLimiter(
     private val name: RateLimiterName,
     private val clock: Clock = System,
-    private val config: RateLimiterConfig.RateLimiterBuilder
+    private val config: RateLimitConfiguration
 ) {
     private val rateLimits = mutableMapOf<String, RateLimitData>()
     private val mutex = Mutex()
@@ -78,3 +79,14 @@ internal class RateLimiter(
         resource = headers[config.resourceHeader]
     )
 }
+
+internal data class RateLimitConfiguration(
+    val limitHeader: String,
+    val remainingHeader: String,
+    val resetHeader: String,
+    val usedHeader: String,
+    val resourceHeader: String,
+    val remainingThreshold: Int,
+    val defaultResetDelay: Duration,
+    val rateLimitExceededTrigger: HttpResponse.() -> Boolean
+)

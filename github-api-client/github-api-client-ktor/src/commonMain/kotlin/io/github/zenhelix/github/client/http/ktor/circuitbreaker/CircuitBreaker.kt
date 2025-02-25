@@ -21,12 +21,8 @@ import kotlin.time.Duration
 internal class CircuitBreaker(
     private val name: CircuitBreakerName,
     private val clock: Clock = System,
-    config: CircuitBreakerConfig.CircuitBreakerBuilder
+    private val config: CircuitBreakerConfiguration
 ) {
-
-    private val failureThreshold: Int = config.failureThreshold
-    private val halfOpenFailureThreshold: Int = config.halfOpenFailureThreshold
-    private val resetInterval: Duration = config.resetInterval
     private val failureTrigger = config.failureTrigger
 
     private val failureCounter = atomic(0)
@@ -44,7 +40,7 @@ internal class CircuitBreaker(
     internal fun wire() {
         when (_state.value) {
             CLOSED, HALF_OPEN -> return
-            OPEN              -> throw CircuitBreakerException(failureThreshold, openTimestamp.value + resetInterval)
+            OPEN -> throw CircuitBreakerException(config.failureThreshold, openTimestamp.value + config.resetInterval)
         }
     }
 
@@ -57,8 +53,8 @@ internal class CircuitBreaker(
 
     private fun handleResponse(state: CircuitBreakerState, response: HttpResponse) {
         val selectedFailureThreshold = when (state) {
-            CLOSED    -> failureThreshold
-            HALF_OPEN -> halfOpenFailureThreshold
+            CLOSED    -> config.failureThreshold
+            HALF_OPEN -> config.halfOpenFailureThreshold
             OPEN      -> error("Circuit breaker is already open")
         }
         val failureCount = failureCounter.value
@@ -80,7 +76,7 @@ internal class CircuitBreaker(
         openTimestamp.update { clock.now() }
 
         scope.launch(CoroutineName("CircuitBreaker-$name-half-opener")) {
-            delay(resetInterval)
+            delay(config.resetInterval)
             halfOpenCircuit()
         }
     }
@@ -110,4 +106,11 @@ public class CircuitBreakerException(
     public val failureThreshold: Int, public val nextHalfOpenTime: Instant
 ) : Exception(
     "Action failed more than $failureThreshold times, subsequent calls will be prevented until action is successful again. Circuit will half-open in '$nextHalfOpenTime'"
+)
+
+internal data class CircuitBreakerConfiguration(
+    val failureThreshold: Int,
+    val halfOpenFailureThreshold: Int,
+    val resetInterval: Duration,
+    val failureTrigger: HttpResponse.() -> Boolean
 )

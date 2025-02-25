@@ -13,9 +13,6 @@ import kotlin.time.Duration.Companion.seconds
 @DslMarker
 public annotation class CircuitBreakerDsl
 
-/**
- * Configuration for [CircuitBreaker].
- */
 
 @CircuitBreakerDsl
 public class CircuitBreakerConfig {
@@ -43,26 +40,28 @@ public class CircuitBreakerConfig {
          */
         public var failureTrigger: HttpResponse.() -> Boolean = { status.value >= 400 }
 
+        internal fun build(): CircuitBreakerConfiguration = CircuitBreakerConfiguration(
+            failureThreshold = failureThreshold,
+            halfOpenFailureThreshold = halfOpenFailureThreshold,
+            resetInterval = resetInterval,
+            failureTrigger = failureTrigger
+        )
     }
 
+    @CircuitBreakerDsl
     public fun circuitBreaker(name: CircuitBreakerName, clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit = {}) {
+        require(!circuitBreakers.containsKey(name)) { "Circuit Breaker with name $name is already registered" }
         val config = CircuitBreakerBuilder().apply(builder)
-        circuitBreakers[name] = CircuitBreaker(name, clock = clock, config = config)
+        circuitBreakers[name] = CircuitBreaker(name, clock = clock, config = config.build())
     }
 
+    @CircuitBreakerDsl
     public fun global(clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit = {}) {
         val config = CircuitBreakerBuilder().apply(builder)
-        global = CircuitBreaker(CIRCUIT_BREAKER_NAME_GLOBAL, clock = clock, config = config)
+        global = CircuitBreaker(CIRCUIT_BREAKER_NAME_GLOBAL, clock = clock, config = config.build())
     }
 
 }
 
-/**
- * Value class for a [CircuitBreaker] name
- */
 @JvmInline
-public value class CircuitBreakerName(public val value: String) {
-    public companion object {
-        public fun String.toCircuitBreakerName() = CircuitBreakerName(this)
-    }
-}
+public value class CircuitBreakerName(public val value: String)
