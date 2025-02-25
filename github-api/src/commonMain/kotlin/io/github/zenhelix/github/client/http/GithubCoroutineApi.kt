@@ -8,9 +8,14 @@ import io.github.zenhelix.github.client.http.model.DeleteCachesByKeyResponse
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
+import io.github.zenhelix.github.client.http.model.Runner
+import io.github.zenhelix.github.client.http.model.RunnerApplicationsResponse
+import io.github.zenhelix.github.client.http.model.RunnerRegistrationToken
+import io.github.zenhelix.github.client.http.model.RunnerRemoveToken
+import io.github.zenhelix.github.client.http.model.RunnersResponse
 import io.github.zenhelix.github.client.http.model.WorkflowRunArtifactsResponse
 
-public interface GithubCoroutineApi : GithubActionsCoroutineApi, GithubCacheCoroutineApi, GithubLicensesCoroutineApi
+public interface GithubCoroutineApi : GithubActionsCoroutineApi, GithubCacheCoroutineApi, GithubRunnersCoroutineApi, GithubLicensesCoroutineApi
 
 public interface GithubLicensesCoroutineApi {
 
@@ -207,4 +212,304 @@ public interface GithubCacheCoroutineApi {
         token: String? = null
     ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse>
 
+}
+
+/**
+ * Asynchronous interface for GitHub Actions Self-Hosted Runners API.
+ */
+public interface GithubRunnersCoroutineApi {
+
+    // Repository-level runners
+
+    /**
+     * Lists self-hosted runners for a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param perPage The number of results per page (max 100). Default: 30
+     * @param page Page number of the results to fetch. Default: 1
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of runners or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-a-repository)
+     */
+    public suspend fun listRunnersForRepository(
+        owner: String,
+        repository: String,
+        perPage: Int = 30,
+        page: Int = 1,
+        token: String? = null
+    ): HttpResponseResult<RunnersResponse, ErrorResponse>
+
+    /**
+     * Gets a self-hosted runner for a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param runnerId The ID of the runner.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the runner details or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-a-self-hosted-runner-for-a-repository)
+     */
+    public suspend fun getRunnerForRepository(
+        owner: String,
+        repository: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<Runner, ErrorResponse>
+
+    /**
+     * Deletes a self-hosted runner from a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param runnerId The ID of the runner to delete.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] indicating success or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#delete-a-self-hosted-runner-from-a-repository)
+     */
+    public suspend fun deleteRunnerFromRepository(
+        owner: String,
+        repository: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<Unit, ErrorResponse>
+
+    /**
+     * Creates a registration token for a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the registration token or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-a-repository)
+     */
+    public suspend fun createRunnerRegistrationTokenForRepository(
+        owner: String,
+        repository: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerRegistrationToken, ErrorResponse>
+
+    /**
+     * Creates a remove token for a repository.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the remove token or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-remove-token-for-a-repository)
+     */
+    public suspend fun createRunnerRemoveTokenForRepository(
+        owner: String,
+        repository: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerRemoveToken, ErrorResponse>
+
+    /**
+     * Lists runner applications that can be downloaded and configured for a repository self-hosted runner.
+     *
+     * @param owner The account owner of the repository. The name is not case-sensitive.
+     * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of runner applications or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-runner-applications-for-a-repository)
+     */
+    public suspend fun listRunnerApplicationsForRepository(
+        owner: String,
+        repository: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
+
+    // Organization-level runners
+
+    /**
+     * Lists self-hosted runners for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param perPage The number of results per page (max 100). Default: 30
+     * @param page Page number of the results to fetch. Default: 1
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of runners or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-an-organization)
+     */
+    public suspend fun listRunnersForOrganization(
+        org: String,
+        perPage: Int = 30,
+        page: Int = 1,
+        token: String? = null
+    ): HttpResponseResult<RunnersResponse, ErrorResponse>
+
+    /**
+     * Gets a self-hosted runner for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param runnerId The ID of the runner.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the runner details or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-a-self-hosted-runner-for-an-organization)
+     */
+    public suspend fun getRunnerForOrganization(
+        org: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<Runner, ErrorResponse>
+
+    /**
+     * Deletes a self-hosted runner from an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param runnerId The ID of the runner to delete.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] indicating success or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#delete-a-self-hosted-runner-from-an-organization)
+     */
+    public suspend fun deleteRunnerFromOrganization(
+        org: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<Unit, ErrorResponse>
+
+    /**
+     * Creates a registration token for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the registration token or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-organization)
+     */
+    public suspend fun createRunnerRegistrationTokenForOrganization(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerRegistrationToken, ErrorResponse>
+
+    /**
+     * Creates a remove token for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the remove token or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-remove-token-for-an-organization)
+     */
+    public suspend fun createRunnerRemoveTokenForOrganization(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerRemoveToken, ErrorResponse>
+
+    /**
+     * Lists runner applications that can be downloaded and configured for an organization self-hosted runner.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of runner applications or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-runner-applications-for-an-organization)
+     */
+    public suspend fun listRunnerApplicationsForOrganization(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
+
+    // Enterprise-level runners
+
+    /**
+     * Lists self-hosted runners for an enterprise.
+     *
+     * @param enterprise The slug version of the enterprise name.
+     * @param perPage The number of results per page (max 100). Default: 30
+     * @param page Page number of the results to fetch. Default: 1
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of runners or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-an-enterprise)
+     */
+    public suspend fun listRunnersForEnterprise(
+        enterprise: String,
+        perPage: Int = 30,
+        page: Int = 1,
+        token: String? = null
+    ): HttpResponseResult<RunnersResponse, ErrorResponse>
+
+    /**
+     * Gets a self-hosted runner for an enterprise.
+     *
+     * @param enterprise The slug version of the enterprise name.
+     * @param runnerId The ID of the runner.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the runner details or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-a-self-hosted-runner-for-an-enterprise)
+     */
+    public suspend fun getRunnerForEnterprise(
+        enterprise: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<Runner, ErrorResponse>
+
+    /**
+     * Deletes a self-hosted runner from an enterprise.
+     *
+     * @param enterprise The slug version of the enterprise name.
+     * @param runnerId The ID of the runner to delete.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] indicating success or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#delete-a-self-hosted-runner-from-an-enterprise)
+     */
+    public suspend fun deleteRunnerFromEnterprise(
+        enterprise: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<Unit, ErrorResponse>
+
+    /**
+     * Creates a registration token for an enterprise.
+     *
+     * @param enterprise The slug version of the enterprise name.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the registration token or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-registration-token-for-an-enterprise)
+     */
+    public suspend fun createRunnerRegistrationTokenForEnterprise(
+        enterprise: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerRegistrationToken, ErrorResponse>
+
+    /**
+     * Creates a remove token for an enterprise.
+     *
+     * @param enterprise The slug version of the enterprise name.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the remove token or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-remove-token-for-an-enterprise)
+     */
+    public suspend fun createRunnerRemoveTokenForEnterprise(
+        enterprise: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerRemoveToken, ErrorResponse>
+
+    /**
+     * Lists runner applications that can be downloaded and configured for an enterprise self-hosted runner.
+     *
+     * @param enterprise The slug version of the enterprise name.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the list of runner applications or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-runner-applications-for-an-enterprise)
+     */
+    public suspend fun listRunnerApplicationsForEnterprise(
+        enterprise: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
 }

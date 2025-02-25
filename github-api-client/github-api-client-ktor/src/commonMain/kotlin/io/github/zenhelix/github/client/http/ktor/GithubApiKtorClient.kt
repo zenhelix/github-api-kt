@@ -20,6 +20,11 @@ import io.github.zenhelix.github.client.http.model.DeleteCachesByKeyResponse
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
+import io.github.zenhelix.github.client.http.model.Runner
+import io.github.zenhelix.github.client.http.model.RunnerApplicationsResponse
+import io.github.zenhelix.github.client.http.model.RunnerRegistrationToken
+import io.github.zenhelix.github.client.http.model.RunnerRemoveToken
+import io.github.zenhelix.github.client.http.model.RunnersResponse
 import io.github.zenhelix.github.client.http.model.WorkflowRunArtifactsResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -34,6 +39,7 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
@@ -228,6 +234,7 @@ public class GithubApiKtorClient(
             cause = e
         )
     }
+
     override suspend fun listCachesForRepository(
         owner: String,
         repository: String,
@@ -294,5 +301,242 @@ public class GithubApiKtorClient(
             bearerAuth(requiredToken(token))
         }.result()
     }
+
+    // Repository-level runners
+
+    override suspend fun listRunnersForRepository(
+        owner: String,
+        repository: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<RunnersResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runners")
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun getRunnerForRepository(
+        owner: String,
+        repository: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<Runner, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runners", runnerId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun deleteRunnerFromRepository(
+        owner: String,
+        repository: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<Unit, ErrorResponse> = handleCircuitBreaker {
+        client.delete {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runners", runnerId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun createRunnerRegistrationTokenForRepository(
+        owner: String,
+        repository: String,
+        token: String?
+    ): HttpResponseResult<RunnerRegistrationToken, ErrorResponse> = handleCircuitBreaker {
+        client.post {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runners", "registration-token")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun createRunnerRemoveTokenForRepository(
+        owner: String,
+        repository: String,
+        token: String?
+    ): HttpResponseResult<RunnerRemoveToken, ErrorResponse> = handleCircuitBreaker {
+        client.post {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runners", "remove-token")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun listRunnerApplicationsForRepository(
+        owner: String,
+        repository: String,
+        token: String?
+    ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runners", "downloads")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    // Organization-level runners
+
+    override suspend fun listRunnersForOrganization(
+        org: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<RunnersResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "runners")
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun getRunnerForOrganization(
+        org: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<Runner, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "runners", runnerId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun deleteRunnerFromOrganization(
+        org: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<Unit, ErrorResponse> = handleCircuitBreaker {
+        client.delete {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "runners", runnerId.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun createRunnerRegistrationTokenForOrganization(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerRegistrationToken, ErrorResponse> = handleCircuitBreaker {
+        client.post {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "runners", "registration-token")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun createRunnerRemoveTokenForOrganization(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerRemoveToken, ErrorResponse> = handleCircuitBreaker {
+        client.post {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "runners", "remove-token")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun listRunnerApplicationsForOrganization(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "runners", "downloads")
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    // Enterprise-level runners
+
+    override suspend fun listRunnersForEnterprise(
+        enterprise: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<RunnersResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("enterprises", enterprise, "actions", "runners")
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun getRunnerForEnterprise(
+        enterprise: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<Runner, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url { takeFrom(baseUrl).appendPathSegments("enterprises", enterprise, "actions", "runners", runnerId.toString()) }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun deleteRunnerFromEnterprise(
+        enterprise: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<Unit, ErrorResponse> = handleCircuitBreaker {
+        client.delete {
+            url { takeFrom(baseUrl).appendPathSegments("enterprises", enterprise, "actions", "runners", runnerId.toString()) }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun createRunnerRegistrationTokenForEnterprise(
+        enterprise: String,
+        token: String?
+    ): HttpResponseResult<RunnerRegistrationToken, ErrorResponse> = handleCircuitBreaker {
+        client.post {
+            url { takeFrom(baseUrl).appendPathSegments("enterprises", enterprise, "actions", "runners", "registration-token") }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun createRunnerRemoveTokenForEnterprise(
+        enterprise: String,
+        token: String?
+    ): HttpResponseResult<RunnerRemoveToken, ErrorResponse> = handleCircuitBreaker {
+        client.post {
+            url { takeFrom(baseUrl).appendPathSegments("enterprises", enterprise, "actions", "runners", "remove-token") }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun listRunnerApplicationsForEnterprise(
+        enterprise: String,
+        token: String?
+    ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url { takeFrom(baseUrl).appendPathSegments("enterprises", enterprise, "actions", "runners", "downloads") }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
 }
 
