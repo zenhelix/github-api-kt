@@ -30,6 +30,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,7 +38,7 @@ class RateLimiterTest {
 
     @Test
     fun `basic rate limiting functionality`() = runTest {
-        val resetSeconds = 5.seconds
+        val resetDelay = 5.seconds
 
         val mockEngine = createMockEngine {
             addHandler {
@@ -46,7 +47,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("0"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
@@ -57,7 +58,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("10"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
@@ -80,14 +81,14 @@ class RateLimiterTest {
 
         val elapsedSeconds = clock().now() - startTime
         assertTrue(
-            elapsedSeconds >= resetSeconds,
-            "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetSeconds"
+            elapsedSeconds >= resetDelay,
+            "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetDelay"
         )
     }
 
     @Test
     fun `rate limiter with custom config`() = runTest {
-        val resetSeconds = 10.seconds
+        val resetDelay = 10.seconds
 
         val mockEngine = createMockEngine {
 
@@ -98,7 +99,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("5"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
@@ -111,7 +112,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("20"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
@@ -138,14 +139,14 @@ class RateLimiterTest {
         // Время должно было продвинуться вперед на время сброса
         val elapsedSeconds = clock().now() - startTime
         assertTrue(
-            elapsedSeconds >= resetSeconds,
-            "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetSeconds"
+            elapsedSeconds >= resetDelay,
+            "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetDelay"
         )
     }
 
     @Test
     fun `multiple rate limiters for different resources`() = runTest {
-        val resetSeconds = 5.seconds
+        val resetDelay = 5.seconds
 
         val api1Name = RateLimiterName("api1")
         val api2Name = RateLimiterName("api2")
@@ -162,7 +163,7 @@ class RateLimiterTest {
                 10
             }
             val reset = (clock().now() + if (resource == "api1") {
-                resetSeconds
+                resetDelay
             } else {
                 0.seconds
             })
@@ -203,8 +204,8 @@ class RateLimiterTest {
         // Должен был подождать сброса ограничения rate limit (5 секунд)
         val elapsedAfterApi1 = clock().now() - startTime
         assertTrue(
-            elapsedAfterApi1 >= resetSeconds,
-            "Должен ждать сброса ограничения rate limit для api1. Прошло: $elapsedAfterApi1, ожидалось >= $resetSeconds"
+            elapsedAfterApi1 >= resetDelay,
+            "Должен ждать сброса ограничения rate limit для api1. Прошло: $elapsedAfterApi1, ожидалось >= $resetDelay"
         )
 
         val timeBeforeApi2 = clock().now()
@@ -217,14 +218,14 @@ class RateLimiterTest {
         // Для api2 не должно быть задержки
         val elapsedForApi2 = clock().now() - timeBeforeApi2
         assertTrue(
-            elapsedForApi2 < resetSeconds,
-            "Не должен ждать для api2. Прошло: $elapsedForApi2, должно быть < $resetSeconds"
+            elapsedForApi2 < resetDelay,
+            "Не должен ждать для api2. Прошло: $elapsedForApi2, должно быть < $resetDelay"
         )
     }
 
     @Test
     fun `rate limiter handles 429 status correctly`() = runTest {
-        val resetSeconds = 5.seconds
+        val resetDelay = 5.seconds
 
         val mockEngine = createMockEngine {
             addHandler {
@@ -235,7 +236,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         HttpHeaders.RateLimitLimit to listOf("60"),
                         HttpHeaders.RateLimitRemaining to listOf("0"),
-                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
                         HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
@@ -273,15 +274,15 @@ class RateLimiterTest {
         // Должен был подождать сброса ограничения
         val elapsed = clock().now() - startTime
         assertTrue(
-            elapsed >= resetSeconds,
-            "Должен ждать сброса ограничения rate limit после 429. Прошло: $elapsed, ожидалось >= $resetSeconds"
+            elapsed >= resetDelay,
+            "Должен ждать сброса ограничения rate limit после 429. Прошло: $elapsed, ожидалось >= $resetDelay"
         )
         assertEquals(HttpStatusCode.OK, response.status)
     }
 
     @Test
     fun `rate limiter respects manual time advancement`() = runTest {
-        val resetSeconds = 5L
+        val resetDelay = 5.seconds
 
         val mockEngine = mockEngine {
             respond(
@@ -290,7 +291,7 @@ class RateLimiterTest {
                 headers = headersOf(
                     HttpHeaders.RateLimitLimit to listOf("60"),
                     HttpHeaders.RateLimitRemaining to listOf("0"),
-                    HttpHeaders.RateLimitReset to listOf((clock().now().epochSeconds + resetSeconds).toString()),
+                    HttpHeaders.RateLimitReset to listOf((clock().now() + resetDelay).epochSeconds.toString()),
                     HttpHeaders.RateLimitResource to listOf("core")
                 )
             )
@@ -311,7 +312,7 @@ class RateLimiterTest {
         var secondRequestCompleted = false
 
         // Начинаем второй запрос, но не ждем его завершения
-        val job = async {
+        async {
             client.get("https://api.example.com")
             secondRequestCompleted = true
         }
@@ -321,7 +322,7 @@ class RateLimiterTest {
         assertFalse(secondRequestCompleted, "Запрос не должен завершиться до продвижения времени")
 
         // Продвигаем время вперед чуть больше, чем период сброса
-        advanceTimeBy((resetSeconds * 1000) + 100)
+        advanceTimeBy(resetDelay + 100.milliseconds)
         runCurrent()
 
         // Теперь запрос должен завершиться
