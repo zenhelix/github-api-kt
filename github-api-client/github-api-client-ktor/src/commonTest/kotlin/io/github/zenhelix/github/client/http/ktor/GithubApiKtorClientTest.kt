@@ -9,18 +9,19 @@ import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.License
 import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.ktor.client.call.NoTransformationFoundException
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.MockEngineConfig
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
+import test.TestClock
+import test.createMockEngine
+import test.mockEngine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,7 +34,7 @@ class GithubApiKtorClientTest {
     @Test fun `success request`() = runTest {
         val mockBearer = "mock"
 
-        val mockEngine = MockEngine { request ->
+        val mockEngine = mockEngine { request ->
             assertEquals("$GITHUB_API_PUBLIC_BASE_URL/licenses", request.url.toString())
             assertEquals("Bearer $mockBearer", request.headers[HttpHeaders.Authorization])
             assertEquals(APPLICATION_GITHUB_JSON_MEDIA_TYPE, request.headers[HttpHeaders.Accept])
@@ -76,7 +77,7 @@ class GithubApiKtorClientTest {
             )
         }
 
-        val result = GithubApiKtorClient(mockEngine, defaultToken = mockBearer).licenses()
+        val result = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = mockBearer).licenses()
         assertEquals(
             (result as HttpResponseResult.Success).httpStatus,
             200
@@ -175,20 +176,20 @@ class GithubApiKtorClientTest {
     }
 
     @Test fun `unexpected response`() = runTest {
-        val mockEngine = MockEngine {
+        val mockEngine = mockEngine {
             respond(
                 content = ByteReadChannel("unexpected"),
                 status = HttpStatusCode.OK
             )
         }
 
-        val result = GithubApiKtorClient(mockEngine, defaultToken = "mock").licenses()
+        val result = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock").licenses()
         assertTrue(result is HttpResponseResult.UnexpectedError)
         assertTrue(result.cause is NoTransformationFoundException)
     }
 
     @Test fun `error response`() = runTest {
-        val mockEngine = MockEngine {
+        val mockEngine = mockEngine {
             respond(
                 content = ByteReadChannel(
                     //language=JSON
@@ -199,7 +200,7 @@ class GithubApiKtorClientTest {
             )
         }
 
-        val result = GithubApiKtorClient(mockEngine, defaultToken = "mock").licenses()
+        val result = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock").licenses()
         assertTrue(result is HttpResponseResult.Error<*>)
         assertEquals(
             ErrorResponse(
@@ -215,8 +216,7 @@ class GithubApiKtorClientTest {
         val resetInterval = 10.seconds
         val failureThreshold = 3
 
-        val mockEngine = MockEngine(MockEngineConfig().apply {
-            this.dispatcher = StandardTestDispatcher(this@runTest.testScheduler)
+        val mockEngine = createMockEngine {
             repeat(failureThreshold + 1) {
                 addHandler {
                     respond(
@@ -234,12 +234,13 @@ class GithubApiKtorClientTest {
                 respond(
                     //language=JSON
                     "[]",
+                    status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
                 )
             }
-        })
+        }
 
-        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock", circuitBreakerConfig = {
+        val client = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock", circuitBreakerConfig = {
             this.failureThreshold = failureThreshold
             this.halfOpenFailureThreshold = 2
             this.resetInterval = resetInterval
@@ -254,6 +255,7 @@ class GithubApiKtorClientTest {
         assertTrue(client.licenses() is HttpResponseResult.CircuitBreakerError)
 
         advanceTimeBy(resetInterval + 1.seconds)
+        runCurrent()
 
         assertEquals(expectedResponse, (client.licenses() as HttpResponseResult.Error<ErrorResponse>).data)
 
@@ -264,57 +266,58 @@ class GithubApiKtorClientTest {
     }
 
     @Test fun `rate limiter without header`() = runTest {
-        val mockEngine = MockEngine(MockEngineConfig().apply {
-            this.dispatcher = StandardTestDispatcher(this@runTest.testScheduler)
-            addHandler {
-                respond(
-                    //language=JSON
-                    "[]",
-                    headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
-                )
-            }
-        })
+        val mockEngine = mockEngine {
+            respond(
+                //language=JSON
+                "[]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+            )
+        }
 
-        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock")
+        val client = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock")
 
-        assertEquals(
-            emptyList<License>(),
-            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
-        )
+        repeat(2) {
+            assertEquals(
+                emptyList<License>(),
+                (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
+            )
+        }
     }
 
     @Test fun `rate limiter`() = runTest {
         val delay = 2.minutes
+        val testClock = TestClock(this)
 
-        val mockEngine = MockEngine(MockEngineConfig().apply {
-            this.dispatcher = StandardTestDispatcher(this@runTest.testScheduler)
-            addHandler {
-                respond(
-                    //language=JSON
-                    "[]",
-                    headers = headersOf(
-                        HttpHeaders.ContentType to listOf("application/json; charset=utf-8"),
-                        "X-RateLimit-Limit" to listOf("60"),
-                        "X-RateLimit-Remaining" to listOf("0"),
-                        "X-RateLimit-Reset" to listOf((Clock.System.now() + delay).epochSeconds.toString()),
-                        "X-RateLimit-Resource" to listOf("core"),
-                        "X-RateLimit-Used" to listOf("27")
-                    )
+        val mockEngine = mockEngine {
+            respond(
+                //language=JSON
+                "[]",
+                status = HttpStatusCode.OK,
+                headers = headersOf(
+                    HttpHeaders.ContentType to listOf("application/json; charset=utf-8"),
+                    "X-RateLimit-Limit" to listOf("60"),
+                    "X-RateLimit-Remaining" to listOf("0"),
+                    "X-RateLimit-Reset" to listOf((testClock.now().epochSeconds + delay.inWholeSeconds).toString()),
+                    "X-RateLimit-Resource" to listOf("core"),
+                    "X-RateLimit-Used" to listOf("27")
                 )
-            }
-        })
+            )
+        }
 
-        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock")
+        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock", clock = testClock)
 
-        assertEquals(
-            emptyList<License>(),
-            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
-        )
+        assertEquals(emptyList<License>(), (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data)
+        runCurrent()
 
-        assertEquals(
-            emptyList<License>(),
-            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
+        val startTime = currentTime
+
+        assertEquals(emptyList<License>(), (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data)
+
+        val elapsed = currentTime - startTime
+        assertTrue(
+            elapsed >= delay.inWholeMilliseconds,
+            "Должен был ждать сброса ограничения rate limit. Прошло: ${elapsed / 1000}с, ожидалось >= ${delay.inWholeSeconds}с"
         )
     }
-
 }

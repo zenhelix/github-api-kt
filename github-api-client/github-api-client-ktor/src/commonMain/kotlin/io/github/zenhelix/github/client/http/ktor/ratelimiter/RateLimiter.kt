@@ -11,7 +11,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Clock.System
 import kotlinx.datetime.Instant
 import kotlin.properties.Delegates
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class RateLimiter(
     private val name: RateLimiterName,
@@ -29,46 +29,63 @@ internal class RateLimiter(
 
     suspend fun waitIfNeeded() {
         mutex.withLock {
-            val now = clock.now().toEpochMilliseconds()
-            var maxResetTime = now
+            val now = clock.now()
+            var delayNeeded = 0L
 
             rateLimits.values.forEach { data ->
-                data.reset?.toEpochMilliseconds()?.let { resetTime ->
-                    if ((data.remaining ?: 1) <= 0 && resetTime > now) {
-                        if (resetTime > maxResetTime) {
-                            maxResetTime = resetTime
+                data.reset?.let { resetTime ->
+                    if ((data.remaining ?: Int.MAX_VALUE) <= config.remainingThreshold && resetTime > now) {
+                        val waitTime = resetTime.toEpochMilliseconds() - now.toEpochMilliseconds()
+                        if (waitTime > delayNeeded) {
+                            delayNeeded = waitTime
                         }
                     }
                 }
             }
 
-            if (maxResetTime > now) {
-                delay(maxResetTime - now)
+            if (delayNeeded > 0) {
+                delay(delayNeeded.milliseconds)
             }
         }
     }
 
     suspend fun handleResponse(response: HttpResponse) {
         val data = fromHttpHeaders(response.headers)
-        val resource = data.resource ?: return
+        // Если ресурс не указан, используем дефолтный ресурс на основе имени rate limiter
+        val resource = data.resource ?: name.value
 
-        mutex.lock()
-        try {
+        mutex.withLock {
             if (config.rateLimitExceededTrigger(response)) {
+                // Если сработал триггер превышения лимита
                 rateLimits[resource] = data.copy(
                     remaining = 0,
-                    reset = data.reset ?: (clock.now() + 60.seconds)
+                    reset = data.reset ?: (clock.now() + config.defaultResetDelay)
                 )
-            } else {
-                rateLimits[resource] = data
+            } else if (data.limit != null || data.remaining != null || data.reset != null) {
+                // Обновляем только если в ответе есть информация о лимитах
+                val existingData = rateLimits[resource]
+                if (existingData != null) {
+                    // Обновляем существующие данные только с новыми значениями
+                    rateLimits[resource] = existingData.copy(
+                        limit = data.limit ?: existingData.limit,
+                        remaining = data.remaining ?: existingData.remaining,
+                        reset = data.reset ?: existingData.reset,
+                        used = data.used ?: existingData.used
+                    )
+                } else {
+                    // Сохраняем новые данные
+                    rateLimits[resource] = data
+                }
             }
-        } finally {
-            mutex.unlock()
         }
     }
 
     suspend fun getMaxResetTime(): Long = mutex.withLock {
         rateLimits.values.maxOfOrNull { it.reset?.toEpochMilliseconds() ?: 0 } ?: 0
+    }
+
+    suspend fun getRateLimits(): Map<String, RateLimitData> = mutex.withLock {
+        rateLimits.toMap()
     }
 
     private fun fromHttpHeaders(headers: Headers): RateLimitData = RateLimitData(
@@ -78,5 +95,4 @@ internal class RateLimiter(
         used = headers[config.usedHeader]?.toIntOrNull(),
         resource = headers[config.resourceHeader]
     )
-
 }

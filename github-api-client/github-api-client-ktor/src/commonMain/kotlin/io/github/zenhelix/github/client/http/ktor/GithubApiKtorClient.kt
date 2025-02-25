@@ -29,6 +29,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.seconds
 
@@ -36,6 +37,7 @@ public class GithubApiKtorClient(
     engine: HttpClientEngine,
     private val baseUrl: String = GITHUB_API_PUBLIC_BASE_URL,
     private val defaultToken: String? = null,
+    private val clock: Clock = Clock.System,
     circuitBreakerConfig: CircuitBreakerConfig.CircuitBreakerBuilder.() -> Unit = {},
     configure: HttpClientConfig<*>.() -> Unit = {}
 ) : GithubCoroutineApi {
@@ -54,7 +56,7 @@ public class GithubApiKtorClient(
             sanitizeHeader { header -> header == HttpHeaders.Authorization }
         }
         install(CircuitBreaking) {
-            global {
+            global(clock) {
                 failureThreshold = 4
                 halfOpenFailureThreshold = 2
                 resetInterval = 1.seconds
@@ -64,7 +66,7 @@ public class GithubApiKtorClient(
             }
         }
         install(RateLimiting) {
-            global {}
+            global(clock) {}
         }
 
         configure()
