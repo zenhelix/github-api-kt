@@ -15,7 +15,7 @@ public interface GithubLicensesApi {
 
 }
 
-public interface GithubActionsApi : GithubLicensesApi {
+public interface GithubActionsApi {
 
     /**
      * Lists all artifacts for a repository.
