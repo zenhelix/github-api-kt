@@ -24,8 +24,6 @@ public class RateLimiterConfig {
     internal var global: RateLimiter? = null
 
     public class RateLimiterBuilder {
-        public var default: Boolean = false
-
         public var limitHeader: String = HttpHeaders.RateLimitLimit
         public var remainingHeader: String = HttpHeaders.RateLimitRemaining
         public var resetHeader: String = HttpHeaders.RateLimitReset

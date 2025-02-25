@@ -45,6 +45,7 @@ public class GithubApiKtorClient(
         defaultRequest {
             acceptGithubJson()
             githubApiVersion()
+
             withRateLimiter()
             withCircuitBreaker()
         }
@@ -67,7 +68,10 @@ public class GithubApiKtorClient(
             }
         }
         install(RateLimiting) {
-            global(clock)
+            global(clock) {
+                remainingThreshold = 0
+                defaultResetDelay = 60.seconds
+            }
         }
 
         configure()
