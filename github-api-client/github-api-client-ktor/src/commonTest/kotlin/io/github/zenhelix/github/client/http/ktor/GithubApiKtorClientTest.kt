@@ -4,6 +4,11 @@ import io.github.zenhelix.github.client.http.GithubApiVersion
 import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_JSON_MEDIA_TYPE
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_PUBLIC_BASE_URL
 import io.github.zenhelix.github.client.http.ktor.utils.GithubApiVersion
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitLimit
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitRemaining
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitReset
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitResource
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitUsed
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.License
@@ -65,11 +70,11 @@ class GithubApiKtorClientTest {
                     "X-Frame-Options" to listOf("deny"),
                     "X-GitHub-Media-Type" to listOf("github.v3"),
                     "X-GitHub-Request-Id" to listOf("577E:9FCA3:11300B:17B6A3:67A38942"),
-                    "X-RateLimit-Limit" to listOf("60"),
-                    "X-RateLimit-Remaining" to listOf("33"),
-                    "X-RateLimit-Reset" to listOf("1738772393"),
-                    "X-RateLimit-Resource" to listOf("core"),
-                    "X-RateLimit-Used" to listOf("27"),
+                    HttpHeaders.RateLimitLimit to listOf("60"),
+                    HttpHeaders.RateLimitRemaining to listOf("33"),
+                    HttpHeaders.RateLimitReset to listOf("1738772393"),
+                    HttpHeaders.RateLimitResource to listOf("core"),
+                    HttpHeaders.RateLimitUsed to listOf("27"),
                     "X-XSS-Protection" to listOf("0"),
                     "x-github-api-version-selected" to listOf("2022-11-28")
                 )
@@ -291,11 +296,11 @@ class GithubApiKtorClientTest {
                 status = HttpStatusCode.OK,
                 headers = headersOf(
                     HttpHeaders.ContentType to listOf("application/json; charset=utf-8"),
-                    "X-RateLimit-Limit" to listOf("60"),
-                    "X-RateLimit-Remaining" to listOf("0"),
-                    "X-RateLimit-Reset" to listOf((clock().now() + delay).epochSeconds.toString()),
-                    "X-RateLimit-Resource" to listOf("core"),
-                    "X-RateLimit-Used" to listOf("27")
+                    HttpHeaders.RateLimitLimit to listOf("60"),
+                    HttpHeaders.RateLimitRemaining to listOf("0"),
+                    HttpHeaders.RateLimitReset to listOf((clock().now() + delay).epochSeconds.toString()),
+                    HttpHeaders.RateLimitResource to listOf("core"),
+                    HttpHeaders.RateLimitUsed to listOf("27")
                 )
             )
         }

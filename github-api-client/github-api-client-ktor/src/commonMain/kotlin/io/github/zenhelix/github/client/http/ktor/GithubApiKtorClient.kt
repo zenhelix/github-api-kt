@@ -5,7 +5,6 @@ import io.github.zenhelix.github.client.http.GithubCoroutineApi
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerConfig
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerException
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreaking
-import io.github.zenhelix.github.client.http.ktor.circuitbreaker.global
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.withCircuitBreaker
 import io.github.zenhelix.github.client.http.ktor.ratelimiter.RateLimiting
 import io.github.zenhelix.github.client.http.ktor.ratelimiter.withRateLimiter
@@ -19,8 +18,8 @@ import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
-import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
@@ -43,9 +42,11 @@ public class GithubApiKtorClient(
 ) : GithubCoroutineApi {
 
     private val client: HttpClient = HttpClient(engine) {
-        install(DefaultRequest) {
+        defaultRequest {
             acceptGithubJson()
             githubApiVersion()
+            withRateLimiter()
+            withCircuitBreaker()
         }
         install(ContentNegotiation) {
             json(Json { prettyPrint = true })
@@ -66,7 +67,7 @@ public class GithubApiKtorClient(
             }
         }
         install(RateLimiting) {
-            global(clock) {}
+            global(clock)
         }
 
         configure()
@@ -79,8 +80,6 @@ public class GithubApiKtorClient(
     override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = handleCircuitBreaker {
         client.get("$baseUrl/licenses") {
             bearerAuth(requiredToken(token))
-            withCircuitBreaker()
-            withRateLimiter()
         }.result()
     }
 

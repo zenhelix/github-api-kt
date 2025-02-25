@@ -42,7 +42,6 @@ internal class RateLimiter(
                     }
                 }
             }
-
             if (delayNeeded > 0) {
                 delay(delayNeeded.milliseconds)
             }

@@ -24,6 +24,8 @@ public class RateLimiterConfig {
     internal var global: RateLimiter? = null
 
     public class RateLimiterBuilder {
+        public var default: Boolean = false
+
         public var limitHeader: String = HttpHeaders.RateLimitLimit
         public var remainingHeader: String = HttpHeaders.RateLimitRemaining
         public var resetHeader: String = HttpHeaders.RateLimitReset
@@ -36,12 +38,12 @@ public class RateLimiterConfig {
         public var rateLimitExceededTrigger: HttpResponse.() -> Boolean = { status == HttpStatusCode.TooManyRequests }
     }
 
-    public fun rateLimiter(name: RateLimiterName, clock: Clock = System, builder: RateLimiterBuilder.() -> Unit) {
+    public fun rateLimiter(name: RateLimiterName, clock: Clock = System, builder: RateLimiterBuilder.() -> Unit = {}) {
         val config = RateLimiterBuilder().apply(builder)
         rateLimiters[name] = RateLimiter(name, clock = clock, config = config)
     }
 
-    public fun global(clock: Clock = System, builder: RateLimiterBuilder.() -> Unit) {
+    public fun global(clock: Clock = System, builder: RateLimiterBuilder.() -> Unit = {}) {
         val config = RateLimiterBuilder().apply(builder)
         global = RateLimiter(RATE_LIMITER_NAME_GLOBAL, clock = clock, config = config)
     }

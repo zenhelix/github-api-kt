@@ -3,10 +3,17 @@ package io.github.zenhelix.github.client.http.ktor
 import io.github.zenhelix.github.client.http.ktor.ratelimiter.RateLimiterName
 import io.github.zenhelix.github.client.http.ktor.ratelimiter.RateLimiting
 import io.github.zenhelix.github.client.http.ktor.ratelimiter.requestWithRateLimiter
+import io.github.zenhelix.github.client.http.ktor.ratelimiter.withRateLimiter
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitLimit
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitRemaining
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitReset
+import io.github.zenhelix.github.client.http.ktor.utils.RateLimitResource
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.url
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
@@ -16,56 +23,61 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import test.clock
+import test.createMockEngine
 import test.mockEngine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RateLimiterTest {
 
     @Test
     fun `basic rate limiting functionality`() = runTest {
-        val resetSeconds = 5L
+        val resetSeconds = 5.seconds
 
-        val mockEngine = mockEngine {
-            val remaining = if (clock().now().epochSeconds > resetSeconds) "10" else "0"
-            val reset = (clock().now().epochSeconds + resetSeconds).toString()
-
-            respond(
-                content = ByteReadChannel("{}"),
-                status = HttpStatusCode.OK,
-                headers = headersOf(
-                    "X-RateLimit-Limit" to listOf("60"),
-                    "X-RateLimit-Remaining" to listOf(remaining),
-                    "X-RateLimit-Reset" to listOf(reset),
-                    "X-RateLimit-Resource" to listOf("core")
+        val mockEngine = createMockEngine {
+            addHandler {
+                respond(
+                    content = "{}",
+                    headers = headersOf(
+                        HttpHeaders.RateLimitLimit to listOf("60"),
+                        HttpHeaders.RateLimitRemaining to listOf("0"),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitResource to listOf("core")
+                    )
                 )
-            )
+            }
+            addHandler {
+                respond(
+                    content = "{}",
+                    headers = headersOf(
+                        HttpHeaders.RateLimitLimit to listOf("60"),
+                        HttpHeaders.RateLimitRemaining to listOf("10"),
+                        HttpHeaders.RateLimitReset to listOf((clock().now() + resetSeconds).epochSeconds.toString()),
+                        HttpHeaders.RateLimitResource to listOf("core")
+                    )
+                )
+            }
+
         }
 
         val client = HttpClient(mockEngine) {
+            defaultRequest { withRateLimiter() }
             install(RateLimiting) {
-                global(clock = clock()) {
-                    limitHeader = "X-RateLimit-Limit"
-                    remainingHeader = "X-RateLimit-Remaining"
-                    resetHeader = "X-RateLimit-Reset"
-                    resourceHeader = "X-RateLimit-Resource"
-                }
+                global(clock = clock())
             }
         }
 
-        // Первый запрос установит ограничение rate limit
-        val startTime = clock().now().epochSeconds
+        val startTime = clock().now()
         client.get("https://api.example.com")
-        runCurrent() // Убедимся, что все текущие корутины выполнены
+        runCurrent()
 
-        // Второй запрос должен ждать до сброса ограничения
         client.get("https://api.example.com")
 
-        // Проверяем, что время продвинулось вперед из-за ожидания rate limit
-        val elapsedSeconds = clock().now().epochSeconds - startTime
+        val elapsedSeconds = clock().now() - startTime
         assertTrue(
             elapsedSeconds >= resetSeconds,
             "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetSeconds"
@@ -88,22 +100,19 @@ class RateLimiterTest {
                 content = ByteReadChannel("{}"),
                 status = if (isLimitedRequest && requestCount == 1) HttpStatusCode.TooManyRequests else HttpStatusCode.OK,
                 headers = headersOf(
-                    "X-RateLimit-Limit" to listOf("60"),
-                    "X-RateLimit-Remaining" to listOf(remaining),
-                    "X-RateLimit-Reset" to listOf(reset),
-                    "X-RateLimit-Resource" to listOf("core")
+                    HttpHeaders.RateLimitLimit to listOf("60"),
+                    HttpHeaders.RateLimitRemaining to listOf(remaining),
+                    HttpHeaders.RateLimitReset to listOf(reset),
+                    HttpHeaders.RateLimitResource to listOf("core")
                 )
             )
         }
 
         val client = HttpClient(mockEngine) {
+            defaultRequest { withRateLimiter() }
             install(RateLimiting) {
                 global(clock = clock()) {
                     remainingThreshold = 10 // Приостанавливаться, когда оставшиеся запросы <= 10
-                    limitHeader = "X-RateLimit-Limit"
-                    remainingHeader = "X-RateLimit-Remaining"
-                    resetHeader = "X-RateLimit-Reset"
-                    resourceHeader = "X-RateLimit-Resource"
                 }
             }
         }
@@ -140,28 +149,19 @@ class RateLimiterTest {
                 content = ByteReadChannel("{}"),
                 status = HttpStatusCode.OK,
                 headers = headersOf(
-                    "X-RateLimit-Limit" to listOf("60"),
-                    "X-RateLimit-Remaining" to listOf(remaining),
-                    "X-RateLimit-Reset" to listOf(reset),
-                    "X-RateLimit-Resource" to listOf(resource)
+                    HttpHeaders.RateLimitLimit to listOf("60"),
+                    HttpHeaders.RateLimitRemaining to listOf(remaining),
+                    HttpHeaders.RateLimitReset to listOf(reset),
+                    HttpHeaders.RateLimitResource to listOf(resource)
                 )
             )
         }
 
         val client = HttpClient(mockEngine) {
+            defaultRequest { withRateLimiter() }
             install(RateLimiting) {
-                rateLimiter(api1Name, clock = clock()) {
-                    limitHeader = "X-RateLimit-Limit"
-                    remainingHeader = "X-RateLimit-Remaining"
-                    resetHeader = "X-RateLimit-Reset"
-                    resourceHeader = "X-RateLimit-Resource"
-                }
-                rateLimiter(api2Name, clock = clock()) {
-                    limitHeader = "X-RateLimit-Limit"
-                    remainingHeader = "X-RateLimit-Remaining"
-                    resetHeader = "X-RateLimit-Reset"
-                    resourceHeader = "X-RateLimit-Resource"
-                }
+                rateLimiter(api1Name, clock = clock())
+                rateLimiter(api2Name, clock = clock())
             }
         }
 
@@ -214,10 +214,10 @@ class RateLimiterTest {
                     content = ByteReadChannel("Rate limit exceeded"),
                     status = HttpStatusCode.TooManyRequests,
                     headers = headersOf(
-                        "X-RateLimit-Limit" to listOf("60"),
-                        "X-RateLimit-Remaining" to listOf("0"),
-                        "X-RateLimit-Reset" to listOf((clock().now().epochSeconds + resetSeconds).toString()),
-                        "X-RateLimit-Resource" to listOf("core")
+                        HttpHeaders.RateLimitLimit to listOf("60"),
+                        HttpHeaders.RateLimitRemaining to listOf("0"),
+                        HttpHeaders.RateLimitReset to listOf((clock().now().epochSeconds + resetSeconds).toString()),
+                        HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
             } else {
@@ -226,23 +226,19 @@ class RateLimiterTest {
                     content = ByteReadChannel("Success"),
                     status = HttpStatusCode.OK,
                     headers = headersOf(
-                        "X-RateLimit-Limit" to listOf("60"),
-                        "X-RateLimit-Remaining" to listOf("59"),
-                        "X-RateLimit-Reset" to listOf((clock().now().epochSeconds + 3600).toString()),
-                        "X-RateLimit-Resource" to listOf("core")
+                        HttpHeaders.RateLimitLimit to listOf("60"),
+                        HttpHeaders.RateLimitRemaining to listOf("59"),
+                        HttpHeaders.RateLimitReset to listOf((clock().now().epochSeconds + 3600).toString()),
+                        HttpHeaders.RateLimitResource to listOf("core")
                     )
                 )
             }
         }
 
         val client = HttpClient(mockEngine) {
+            defaultRequest { withRateLimiter() }
             install(RateLimiting) {
-                global(clock = clock()) {
-                    limitHeader = "X-RateLimit-Limit"
-                    remainingHeader = "X-RateLimit-Remaining"
-                    resetHeader = "X-RateLimit-Reset"
-                    resourceHeader = "X-RateLimit-Resource"
-                }
+                global(clock = clock())
             }
         }
 
@@ -272,22 +268,18 @@ class RateLimiterTest {
                 content = ByteReadChannel("{}"),
                 status = HttpStatusCode.OK,
                 headers = headersOf(
-                    "X-RateLimit-Limit" to listOf("60"),
-                    "X-RateLimit-Remaining" to listOf("0"),
-                    "X-RateLimit-Reset" to listOf((clock().now().epochSeconds + resetSeconds).toString()),
-                    "X-RateLimit-Resource" to listOf("core")
+                    HttpHeaders.RateLimitLimit to listOf("60"),
+                    HttpHeaders.RateLimitRemaining to listOf("0"),
+                    HttpHeaders.RateLimitReset to listOf((clock().now().epochSeconds + resetSeconds).toString()),
+                    HttpHeaders.RateLimitResource to listOf("core")
                 )
             )
         }
 
         val client = HttpClient(mockEngine) {
+            defaultRequest { withRateLimiter() }
             install(RateLimiting) {
-                global(clock = clock()) {
-                    limitHeader = "X-RateLimit-Limit"
-                    remainingHeader = "X-RateLimit-Remaining"
-                    resetHeader = "X-RateLimit-Reset"
-                    resourceHeader = "X-RateLimit-Resource"
-                }
+                global(clock = clock())
             }
         }
 

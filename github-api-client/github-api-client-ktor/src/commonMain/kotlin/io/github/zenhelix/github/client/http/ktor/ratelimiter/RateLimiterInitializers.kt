@@ -1,6 +1,7 @@
 package io.github.zenhelix.github.client.http.ktor.ratelimiter
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.DefaultRequest.DefaultRequestBuilder
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.request
 import io.ktor.client.statement.HttpResponse
@@ -39,9 +40,11 @@ public fun RateLimiterConfig.global(
  * Apply the [RateLimiter] with the given [RateLimiterName] to the request or the global one if name is given
  */
 public fun HttpRequestBuilder.withRateLimiter(name: RateLimiterName = RATE_LIMITER_NAME_GLOBAL) {
-    setAttributes {
-        this.put(RateLimiterNameKey, name)
-    }
+    setAttributes { put(RateLimiterNameKey, name) }
+}
+
+public fun DefaultRequestBuilder.withRateLimiter(name: RateLimiterName = RATE_LIMITER_NAME_GLOBAL) {
+    setAttributes { put(RateLimiterNameKey, name) }
 }
 
 /**

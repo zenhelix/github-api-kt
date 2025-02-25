@@ -45,15 +45,16 @@ public class CircuitBreakerConfig {
 
     }
 
-    public fun circuitBreaker(name: CircuitBreakerName, clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit) {
+    public fun circuitBreaker(name: CircuitBreakerName, clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit = {}) {
         val config = CircuitBreakerBuilder().apply(builder)
         circuitBreakers[name] = CircuitBreaker(name, clock = clock, config = config)
     }
 
-    public fun globalCircuitBreaker(clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit) {
+    public fun global(clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit = {}) {
         val config = CircuitBreakerBuilder().apply(builder)
         global = CircuitBreaker(CIRCUIT_BREAKER_NAME_GLOBAL, clock = clock, config = config)
     }
+
 }
 
 /**
