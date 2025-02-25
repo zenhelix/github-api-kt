@@ -25,12 +25,6 @@ public interface GithubApi : GithubActionsApi, GithubActivityApi, GithubAppsApi,
                              GithubReleasesApi, GithubRepositoriesApi, GithubSearchApi, GithubSecretScanningApi, GithubSecurityAdvisoriesApi, GithubTeamsApi,
                              GithubUsersApi
 
-public interface GithubLicensesApi {
-
-    public fun licenses(token: String? = null): HttpResponseResult<LicensesResponse, ErrorResponse>
-
-}
-
 public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubRunnersApi
 public interface GithubActivityApi
 public interface GithubAppsApi
@@ -55,6 +49,12 @@ public interface GithubGitApi
 public interface GithubGitignoreApi
 public interface GithubInteractionsApi
 public interface GithubIssuesApi
+public interface GithubLicensesApi {
+
+    public fun licenses(token: String? = null): HttpResponseResult<LicensesResponse, ErrorResponse>
+
+}
+
 public interface GithubMarkdownApi
 public interface GithubMetaApi
 public interface GithubMetricsApi

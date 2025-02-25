@@ -30,12 +30,6 @@ public interface GithubCoroutineApi : GithubActionsCoroutineApi, GithubActivityC
                                       GithubSearchCoroutineApi, GithubSecretScanningCoroutineApi, GithubSecurityAdvisoriesCoroutineApi, GithubTeamsCoroutineApi,
                                       GithubUsersCoroutineApi
 
-public interface GithubLicensesCoroutineApi {
-
-    public suspend fun licenses(token: String? = null): HttpResponseResult<LicensesResponse, ErrorResponse>
-
-}
-
 public interface GithubActionsCoroutineApi : GithubArtifactCoroutineApi, GithubCacheCoroutineApi, GithubRunnersCoroutineApi
 public interface GithubActivityCoroutineApi
 public interface GithubAppsCoroutineApi
@@ -60,6 +54,11 @@ public interface GithubGitCoroutineApi
 public interface GithubGitignoreCoroutineApi
 public interface GithubInteractionsCoroutineApi
 public interface GithubIssuesCoroutineApi
+public interface GithubLicensesCoroutineApi {
+
+    public suspend fun licenses(token: String? = null): HttpResponseResult<LicensesResponse, ErrorResponse>
+
+}
 public interface GithubMarkdownCoroutineApi
 public interface GithubMetaCoroutineApi
 public interface GithubMetricsCoroutineApi
