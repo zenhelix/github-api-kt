@@ -5,7 +5,7 @@ import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_
 import io.github.zenhelix.github.client.http.GithubConstants.GITHUB_API_VERSION_HEADER_NAME
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
-import io.github.zenhelix.github.client.http.model.License
+import io.github.zenhelix.github.client.http.model.license.License
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders

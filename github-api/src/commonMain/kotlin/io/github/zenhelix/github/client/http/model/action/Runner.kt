@@ -1,4 +1,4 @@
-package io.github.zenhelix.github.client.http.model
+package io.github.zenhelix.github.client.http.model.action
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

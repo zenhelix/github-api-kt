@@ -3,7 +3,7 @@ package io.github.zenhelix.github.client.http.webflux
 import io.github.zenhelix.github.client.http.GithubConstants.APPLICATION_GITHUB_JSON_MEDIA_TYPE
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
-import io.github.zenhelix.github.client.http.model.License
+import io.github.zenhelix.github.client.http.model.license.License
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer

@@ -1,21 +1,21 @@
 package io.github.zenhelix.github.client.http
 
-import io.github.zenhelix.github.client.http.model.ArtifactResponse
-import io.github.zenhelix.github.client.http.model.ArtifactsResponse
-import io.github.zenhelix.github.client.http.model.CacheListResponse
-import io.github.zenhelix.github.client.http.model.CacheUsageResponse
-import io.github.zenhelix.github.client.http.model.DeleteCachesByKeyResponse
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
 import io.github.zenhelix.github.client.http.model.LicensesResponse
-import io.github.zenhelix.github.client.http.model.Runner
-import io.github.zenhelix.github.client.http.model.RunnerApplicationsResponse
-import io.github.zenhelix.github.client.http.model.RunnerRegistrationToken
-import io.github.zenhelix.github.client.http.model.RunnerRemoveToken
-import io.github.zenhelix.github.client.http.model.RunnersResponse
-import io.github.zenhelix.github.client.http.model.WorkflowRunArtifactsResponse
+import io.github.zenhelix.github.client.http.model.action.ArtifactResponse
+import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
+import io.github.zenhelix.github.client.http.model.action.CacheListResponse
+import io.github.zenhelix.github.client.http.model.action.CacheUsageResponse
+import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyResponse
+import io.github.zenhelix.github.client.http.model.action.Runner
+import io.github.zenhelix.github.client.http.model.action.RunnerApplicationsResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerRegistrationToken
+import io.github.zenhelix.github.client.http.model.action.RunnerRemoveToken
+import io.github.zenhelix.github.client.http.model.action.RunnersResponse
+import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 
-public interface GithubApi : GithubActionsApi, GithubCacheApi, GithubRunnersApi, GithubLicensesApi
+public interface GithubApi : GithubActionsApi, GithubLicensesApi
 
 public interface GithubLicensesApi {
 
@@ -23,7 +23,9 @@ public interface GithubLicensesApi {
 
 }
 
-public interface GithubActionsApi {
+public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubRunnersApi
+
+public interface GithubArtifactApi {
 
     /**
      * Lists all artifacts for a repository.
