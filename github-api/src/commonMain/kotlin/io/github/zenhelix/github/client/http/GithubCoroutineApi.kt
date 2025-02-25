@@ -15,7 +15,20 @@ import io.github.zenhelix.github.client.http.model.action.RunnerRemoveToken
 import io.github.zenhelix.github.client.http.model.action.RunnersResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 
-public interface GithubCoroutineApi : GithubActionsCoroutineApi, GithubLicensesCoroutineApi
+public interface GithubCoroutineApi : GithubActionsCoroutineApi, GithubActivityCoroutineApi,
+                                      GithubAppsCoroutineApi, GithubBillingCoroutineApi, GithubBranchesCoroutineApi,
+                                      GithubChecksCoroutineApi, GithubClassroomCoroutineApi,
+                                      GithubCodeScanningCoroutineApi, GithubCodeSecurityCoroutineApi, GithubCodesOfConductCoroutineApi,
+                                      GithubCodespacesCoroutineApi, GithubCollaboratorsCoroutineApi, GithubCommitsCoroutineApi,
+                                      GithubCopilotCoroutineApi, GithubDependabotCoroutineApi, GithubDependencyGraphCoroutineApi,
+                                      GithubDeployKeysCoroutineApi, GithubDeploymentsCoroutineApi, GithubEmojisCoroutineApi,
+                                      GithubGistsCoroutineApi, GithubGitCoroutineApi, GithubGitignoreCoroutineApi, GithubInteractionsCoroutineApi,
+                                      GithubIssuesCoroutineApi, GithubLicensesCoroutineApi, GithubMarkdownCoroutineApi, GithubMetaCoroutineApi,
+                                      GithubMetricsCoroutineApi, GithubMigrationsCoroutineApi, GithubOrganizationsCoroutineApi, GithubPackagesCoroutineApi,
+                                      GithubPrivateRegistriesCoroutineApi, GithubProjectCoroutineApi, GithubPullRequestsCoroutineApi,
+                                      GithubRateLimitCoroutineApi, GithubReactionsCoroutineApi, GithubReleasesCoroutineApi, GithubRepositoriesCoroutineApi,
+                                      GithubSearchCoroutineApi, GithubSecretScanningCoroutineApi, GithubSecurityAdvisoriesCoroutineApi, GithubTeamsCoroutineApi,
+                                      GithubUsersCoroutineApi
 
 public interface GithubLicensesCoroutineApi {
 
@@ -24,6 +37,48 @@ public interface GithubLicensesCoroutineApi {
 }
 
 public interface GithubActionsCoroutineApi : GithubArtifactCoroutineApi, GithubCacheCoroutineApi, GithubRunnersCoroutineApi
+public interface GithubActivityCoroutineApi
+public interface GithubAppsCoroutineApi
+public interface GithubBillingCoroutineApi
+public interface GithubBranchesCoroutineApi
+public interface GithubChecksCoroutineApi
+public interface GithubClassroomCoroutineApi
+public interface GithubCodeScanningCoroutineApi
+public interface GithubCodeSecurityCoroutineApi
+public interface GithubCodesOfConductCoroutineApi
+public interface GithubCodespacesCoroutineApi
+public interface GithubCollaboratorsCoroutineApi
+public interface GithubCommitsCoroutineApi
+public interface GithubCopilotCoroutineApi
+public interface GithubDependabotCoroutineApi
+public interface GithubDependencyGraphCoroutineApi
+public interface GithubDeployKeysCoroutineApi
+public interface GithubDeploymentsCoroutineApi
+public interface GithubEmojisCoroutineApi
+public interface GithubGistsCoroutineApi
+public interface GithubGitCoroutineApi
+public interface GithubGitignoreCoroutineApi
+public interface GithubInteractionsCoroutineApi
+public interface GithubIssuesCoroutineApi
+public interface GithubMarkdownCoroutineApi
+public interface GithubMetaCoroutineApi
+public interface GithubMetricsCoroutineApi
+public interface GithubMigrationsCoroutineApi
+public interface GithubOrganizationsCoroutineApi
+public interface GithubPackagesCoroutineApi
+public interface GithubPagesCoroutineApi
+public interface GithubPrivateRegistriesCoroutineApi
+public interface GithubProjectCoroutineApi
+public interface GithubPullRequestsCoroutineApi
+public interface GithubRateLimitCoroutineApi
+public interface GithubReactionsCoroutineApi
+public interface GithubReleasesCoroutineApi
+public interface GithubRepositoriesCoroutineApi
+public interface GithubSearchCoroutineApi
+public interface GithubSecretScanningCoroutineApi
+public interface GithubSecurityAdvisoriesCoroutineApi
+public interface GithubTeamsCoroutineApi
+public interface GithubUsersCoroutineApi
 
 public interface GithubArtifactCoroutineApi {
 

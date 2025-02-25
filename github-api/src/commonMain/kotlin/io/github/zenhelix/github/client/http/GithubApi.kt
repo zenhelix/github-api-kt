@@ -15,7 +15,15 @@ import io.github.zenhelix.github.client.http.model.action.RunnerRemoveToken
 import io.github.zenhelix.github.client.http.model.action.RunnersResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 
-public interface GithubApi : GithubActionsApi, GithubLicensesApi
+public interface GithubApi : GithubActionsApi, GithubActivityApi, GithubAppsApi, GithubBillingApi, GithubBranchesApi,
+                             GithubChecksApi, GithubClassroomApi, GithubCodeScanningApi, GithubCodeSecurityApi, GithubCodesOfConductApi,
+                             GithubCodespacesApi, GithubCollaboratorsApi, GithubCommitsApi, GithubCopilotApi, GithubDependabotApi,
+                             GithubDependencyGraphApi, GithubDeployKeysApi, GithubDeploymentsApi, GithubEmojisApi, GithubGistsApi,
+                             GithubGitApi, GithubGitignoreApi, GithubInteractionsApi, GithubIssuesApi, GithubLicensesApi, GithubMarkdownApi,
+                             GithubMetaApi, GithubMetricsApi, GithubMigrationsApi, GithubOrganizationsApi, GithubPackagesApi,
+                             GithubPagesApi, GithubPrivateRegistriesApi, GithubProjectApi, GithubPullRequestsApi, GithubRateLimitApi, GithubReactionsApi,
+                             GithubReleasesApi, GithubRepositoriesApi, GithubSearchApi, GithubSecretScanningApi, GithubSecurityAdvisoriesApi, GithubTeamsApi,
+                             GithubUsersApi
 
 public interface GithubLicensesApi {
 
@@ -24,6 +32,48 @@ public interface GithubLicensesApi {
 }
 
 public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubRunnersApi
+public interface GithubActivityApi
+public interface GithubAppsApi
+public interface GithubBillingApi
+public interface GithubBranchesApi
+public interface GithubChecksApi
+public interface GithubClassroomApi
+public interface GithubCodeScanningApi
+public interface GithubCodeSecurityApi
+public interface GithubCodesOfConductApi
+public interface GithubCodespacesApi
+public interface GithubCollaboratorsApi
+public interface GithubCommitsApi
+public interface GithubCopilotApi
+public interface GithubDependabotApi
+public interface GithubDependencyGraphApi
+public interface GithubDeployKeysApi
+public interface GithubDeploymentsApi
+public interface GithubEmojisApi
+public interface GithubGistsApi
+public interface GithubGitApi
+public interface GithubGitignoreApi
+public interface GithubInteractionsApi
+public interface GithubIssuesApi
+public interface GithubMarkdownApi
+public interface GithubMetaApi
+public interface GithubMetricsApi
+public interface GithubMigrationsApi
+public interface GithubOrganizationsApi
+public interface GithubPackagesApi
+public interface GithubPagesApi
+public interface GithubPrivateRegistriesApi
+public interface GithubProjectApi
+public interface GithubPullRequestsApi
+public interface GithubRateLimitApi
+public interface GithubReactionsApi
+public interface GithubReleasesApi
+public interface GithubRepositoriesApi
+public interface GithubSearchApi
+public interface GithubSecretScanningApi
+public interface GithubSecurityAdvisoriesApi
+public interface GithubTeamsApi
+public interface GithubUsersApi
 
 public interface GithubArtifactApi {
 
