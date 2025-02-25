@@ -213,12 +213,7 @@ public interface GithubCacheApi {
     ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse>
 }
 
-/**
- * Synchronous interface for GitHub Actions Self-Hosted Runners API.
- */
-public interface GithubRunnersApi {
-
-    // Repository-level runners
+public interface GithubRepositoryRunnersApi {
 
     /**
      * Lists self-hosted runners for a repository.
@@ -324,8 +319,9 @@ public interface GithubRunnersApi {
         token: String? = null
     ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
 
-    // Organization-level runners
+}
 
+public interface GithubOrganizationRunnersApi {
     /**
      * Lists self-hosted runners for an organization.
      *
@@ -417,9 +413,9 @@ public interface GithubRunnersApi {
         org: String,
         token: String? = null
     ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
+}
 
-    // Enterprise-level runners
-
+public interface GithubEnterpriseRunnersApi {
     /**
      * Lists self-hosted runners for an enterprise.
      *
@@ -511,4 +507,10 @@ public interface GithubRunnersApi {
         enterprise: String,
         token: String? = null
     ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
+
 }
+
+/**
+ * Synchronous interface for GitHub Actions Self-Hosted Runners API.
+ */
+public interface GithubRunnersApi : GithubRepositoryRunnersApi, GithubOrganizationRunnersApi, GithubEnterpriseRunnersApi

@@ -214,12 +214,7 @@ public interface GithubCacheCoroutineApi {
 
 }
 
-/**
- * Asynchronous interface for GitHub Actions Self-Hosted Runners API.
- */
-public interface GithubRunnersCoroutineApi {
-
-    // Repository-level runners
+public interface GithubRepositoryRunnersCoroutineApi {
 
     /**
      * Lists self-hosted runners for a repository.
@@ -325,8 +320,9 @@ public interface GithubRunnersCoroutineApi {
         token: String? = null
     ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
 
-    // Organization-level runners
+}
 
+public interface GithubOrganizationRunnersCoroutineApi {
     /**
      * Lists self-hosted runners for an organization.
      *
@@ -418,9 +414,9 @@ public interface GithubRunnersCoroutineApi {
         org: String,
         token: String? = null
     ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
+}
 
-    // Enterprise-level runners
-
+public interface GithubEnterpriseRunnersCoroutineApi {
     /**
      * Lists self-hosted runners for an enterprise.
      *
@@ -513,3 +509,8 @@ public interface GithubRunnersCoroutineApi {
         token: String? = null
     ): HttpResponseResult<RunnerApplicationsResponse, ErrorResponse>
 }
+
+/**
+ * Asynchronous interface for GitHub Actions Self-Hosted Runners API.
+ */
+public interface GithubRunnersCoroutineApi : GithubRepositoryRunnersCoroutineApi, GithubOrganizationRunnersCoroutineApi, GithubEnterpriseRunnersCoroutineApi
