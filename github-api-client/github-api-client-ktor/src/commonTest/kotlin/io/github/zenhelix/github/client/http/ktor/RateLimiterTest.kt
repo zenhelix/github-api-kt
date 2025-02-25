@@ -15,7 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import test.TestClock
+import test.clock
 import test.mockEngine
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,12 +27,11 @@ class RateLimiterTest {
 
     @Test
     fun `basic rate limiting functionality`() = runTest {
-        val testClock = TestClock(this)
         val resetSeconds = 5L
 
         val mockEngine = mockEngine {
-            val remaining = if (testClock.now().epochSeconds > resetSeconds) "10" else "0"
-            val reset = (testClock.now().epochSeconds + resetSeconds).toString()
+            val remaining = if (clock().now().epochSeconds > resetSeconds) "10" else "0"
+            val reset = (clock().now().epochSeconds + resetSeconds).toString()
 
             respond(
                 content = ByteReadChannel("{}"),
@@ -48,7 +47,7 @@ class RateLimiterTest {
 
         val client = HttpClient(mockEngine) {
             install(RateLimiting) {
-                global(clock = testClock) {
+                global(clock = clock()) {
                     limitHeader = "X-RateLimit-Limit"
                     remainingHeader = "X-RateLimit-Remaining"
                     resetHeader = "X-RateLimit-Reset"
@@ -58,7 +57,7 @@ class RateLimiterTest {
         }
 
         // Первый запрос установит ограничение rate limit
-        val startTime = testClock.now().epochSeconds
+        val startTime = clock().now().epochSeconds
         client.get("https://api.example.com")
         runCurrent() // Убедимся, что все текущие корутины выполнены
 
@@ -66,7 +65,7 @@ class RateLimiterTest {
         client.get("https://api.example.com")
 
         // Проверяем, что время продвинулось вперед из-за ожидания rate limit
-        val elapsedSeconds = testClock.now().epochSeconds - startTime
+        val elapsedSeconds = clock().now().epochSeconds - startTime
         assertTrue(
             elapsedSeconds >= resetSeconds,
             "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetSeconds"
@@ -75,7 +74,6 @@ class RateLimiterTest {
 
     @Test
     fun `rate limiter with custom config`() = runTest {
-        val testClock = TestClock(this)
         val resetSeconds = 10L
         var requestCount = 0
 
@@ -84,7 +82,7 @@ class RateLimiterTest {
             val isLimitedRequest = it.url.toString().contains("limit") || requestCount > 1
 
             val remaining = if (isLimitedRequest) "5" else "20"
-            val reset = (testClock.now().epochSeconds + resetSeconds).toString()
+            val reset = (clock().now().epochSeconds + resetSeconds).toString()
 
             respond(
                 content = ByteReadChannel("{}"),
@@ -100,7 +98,7 @@ class RateLimiterTest {
 
         val client = HttpClient(mockEngine) {
             install(RateLimiting) {
-                global(clock = testClock) {
+                global(clock = clock()) {
                     remainingThreshold = 10 // Приостанавливаться, когда оставшиеся запросы <= 10
                     limitHeader = "X-RateLimit-Limit"
                     remainingHeader = "X-RateLimit-Remaining"
@@ -115,11 +113,11 @@ class RateLimiterTest {
         runCurrent()
 
         // Второй запрос должен ждать, потому что remaining <= порога
-        val startTime = testClock.now().epochSeconds
+        val startTime = clock().now().epochSeconds
         client.get("https://api.example.com/limit")
 
         // Время должно было продвинуться вперед на время сброса
-        val elapsedSeconds = testClock.now().epochSeconds - startTime
+        val elapsedSeconds = clock().now().epochSeconds - startTime
         assertTrue(
             elapsedSeconds >= resetSeconds,
             "Должен ждать сброса ограничения rate limit. Прошло: $elapsedSeconds, ожидалось >= $resetSeconds"
@@ -128,7 +126,6 @@ class RateLimiterTest {
 
     @Test
     fun `multiple rate limiters for different resources`() = runTest {
-        val testClock = TestClock(this)
         val resetSeconds = 5L
 
         val api1Name = RateLimiterName("api1")
@@ -137,7 +134,7 @@ class RateLimiterTest {
         val mockEngine = mockEngine { request ->
             val resource = if (request.url.toString().contains("api1")) "api1" else "api2"
             val remaining = if (resource == "api1") "0" else "10"
-            val reset = (testClock.now().epochSeconds + (if (resource == "api1") resetSeconds else 0)).toString()
+            val reset = (clock().now().epochSeconds + (if (resource == "api1") resetSeconds else 0)).toString()
 
             respond(
                 content = ByteReadChannel("{}"),
@@ -153,13 +150,13 @@ class RateLimiterTest {
 
         val client = HttpClient(mockEngine) {
             install(RateLimiting) {
-                rateLimiter(api1Name, clock = testClock) {
+                rateLimiter(api1Name, clock = clock()) {
                     limitHeader = "X-RateLimit-Limit"
                     remainingHeader = "X-RateLimit-Remaining"
                     resetHeader = "X-RateLimit-Reset"
                     resourceHeader = "X-RateLimit-Resource"
                 }
-                rateLimiter(api2Name, clock = testClock) {
+                rateLimiter(api2Name, clock = clock()) {
                     limitHeader = "X-RateLimit-Limit"
                     remainingHeader = "X-RateLimit-Remaining"
                     resetHeader = "X-RateLimit-Reset"
@@ -174,7 +171,7 @@ class RateLimiterTest {
         }
         runCurrent()
 
-        val startTime = testClock.now().epochSeconds
+        val startTime = clock().now().epochSeconds
 
         // Второй запрос к api1 должен ждать
         client.requestWithRateLimiter(api1Name) {
@@ -182,13 +179,13 @@ class RateLimiterTest {
         }
 
         // Должен был подождать сброса ограничения rate limit (5 секунд)
-        val elapsedAfterApi1 = testClock.now().epochSeconds - startTime
+        val elapsedAfterApi1 = clock().now().epochSeconds - startTime
         assertTrue(
             elapsedAfterApi1 >= resetSeconds,
             "Должен ждать сброса ограничения rate limit для api1. Прошло: $elapsedAfterApi1, ожидалось >= $resetSeconds"
         )
 
-        val timeBeforeApi2 = testClock.now().epochSeconds
+        val timeBeforeApi2 = clock().now().epochSeconds
 
         // Запрос к api2 не должен ждать (есть доступные запросы)
         client.requestWithRateLimiter(api2Name) {
@@ -196,7 +193,7 @@ class RateLimiterTest {
         }
 
         // Для api2 не должно быть задержки
-        val elapsedForApi2 = testClock.now().epochSeconds - timeBeforeApi2
+        val elapsedForApi2 = clock().now().epochSeconds - timeBeforeApi2
         assertTrue(
             elapsedForApi2 < resetSeconds,
             "Не должен ждать для api2. Прошло: $elapsedForApi2, должно быть < $resetSeconds"
@@ -205,7 +202,6 @@ class RateLimiterTest {
 
     @Test
     fun `rate limiter handles 429 status correctly`() = runTest {
-        val testClock = TestClock(this)
         val resetSeconds = 5L
         var requestCount = 0
 
@@ -220,7 +216,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         "X-RateLimit-Limit" to listOf("60"),
                         "X-RateLimit-Remaining" to listOf("0"),
-                        "X-RateLimit-Reset" to listOf((testClock.now().epochSeconds + resetSeconds).toString()),
+                        "X-RateLimit-Reset" to listOf((clock().now().epochSeconds + resetSeconds).toString()),
                         "X-RateLimit-Resource" to listOf("core")
                     )
                 )
@@ -232,7 +228,7 @@ class RateLimiterTest {
                     headers = headersOf(
                         "X-RateLimit-Limit" to listOf("60"),
                         "X-RateLimit-Remaining" to listOf("59"),
-                        "X-RateLimit-Reset" to listOf((testClock.now().epochSeconds + 3600).toString()),
+                        "X-RateLimit-Reset" to listOf((clock().now().epochSeconds + 3600).toString()),
                         "X-RateLimit-Resource" to listOf("core")
                     )
                 )
@@ -241,7 +237,7 @@ class RateLimiterTest {
 
         val client = HttpClient(mockEngine) {
             install(RateLimiting) {
-                global(clock = testClock) {
+                global(clock = clock()) {
                     limitHeader = "X-RateLimit-Limit"
                     remainingHeader = "X-RateLimit-Remaining"
                     resetHeader = "X-RateLimit-Reset"
@@ -255,11 +251,11 @@ class RateLimiterTest {
         runCurrent()
 
         // Второй запрос - должен ждать из-за ограничения
-        val startTime = testClock.now().epochSeconds
+        val startTime = clock().now().epochSeconds
         val response = client.get("https://api.example.com")
 
         // Должен был подождать сброса ограничения
-        val elapsed = testClock.now().epochSeconds - startTime
+        val elapsed = clock().now().epochSeconds - startTime
         assertTrue(
             elapsed >= resetSeconds,
             "Должен ждать сброса ограничения rate limit после 429. Прошло: $elapsed, ожидалось >= $resetSeconds"
@@ -269,7 +265,6 @@ class RateLimiterTest {
 
     @Test
     fun `rate limiter respects manual time advancement`() = runTest {
-        val testClock = TestClock(this)
         val resetSeconds = 5L
 
         val mockEngine = mockEngine {
@@ -279,7 +274,7 @@ class RateLimiterTest {
                 headers = headersOf(
                     "X-RateLimit-Limit" to listOf("60"),
                     "X-RateLimit-Remaining" to listOf("0"),
-                    "X-RateLimit-Reset" to listOf((testClock.now().epochSeconds + resetSeconds).toString()),
+                    "X-RateLimit-Reset" to listOf((clock().now().epochSeconds + resetSeconds).toString()),
                     "X-RateLimit-Resource" to listOf("core")
                 )
             )
@@ -287,7 +282,7 @@ class RateLimiterTest {
 
         val client = HttpClient(mockEngine) {
             install(RateLimiting) {
-                global(clock = testClock) {
+                global(clock = clock()) {
                     limitHeader = "X-RateLimit-Limit"
                     remainingHeader = "X-RateLimit-Remaining"
                     resetHeader = "X-RateLimit-Reset"

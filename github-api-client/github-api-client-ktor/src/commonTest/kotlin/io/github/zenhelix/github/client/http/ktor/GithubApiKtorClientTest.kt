@@ -16,10 +16,9 @@ import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
-import test.TestClock
+import test.clock
 import test.createMockEngine
 import test.mockEngine
 import kotlin.test.Test
@@ -77,11 +76,8 @@ class GithubApiKtorClientTest {
             )
         }
 
-        val result = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = mockBearer).licenses()
-        assertEquals(
-            (result as HttpResponseResult.Success).httpStatus,
-            200
-        )
+        val result = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = mockBearer).licenses()
+        assertEquals((result as HttpResponseResult.Success).httpStatus, 200)
         assertTrue(result.httpHeaders.size == 24)
         assertEquals(
             listOf(
@@ -183,7 +179,7 @@ class GithubApiKtorClientTest {
             )
         }
 
-        val result = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock").licenses()
+        val result = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = "mock").licenses()
         assertTrue(result is HttpResponseResult.UnexpectedError)
         assertTrue(result.cause is NoTransformationFoundException)
     }
@@ -200,7 +196,7 @@ class GithubApiKtorClientTest {
             )
         }
 
-        val result = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock").licenses()
+        val result = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = "mock").licenses()
         assertTrue(result is HttpResponseResult.Error<*>)
         assertEquals(
             ErrorResponse(
@@ -240,7 +236,7 @@ class GithubApiKtorClientTest {
             }
         }
 
-        val client = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock", circuitBreakerConfig = {
+        val client = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = "mock", circuitBreakerConfig = {
             this.failureThreshold = failureThreshold
             this.halfOpenFailureThreshold = 2
             this.resetInterval = resetInterval
@@ -275,7 +271,7 @@ class GithubApiKtorClientTest {
             )
         }
 
-        val client = GithubApiKtorClient(mockEngine, clock = TestClock(this), defaultToken = "mock")
+        val client = GithubApiKtorClient(mockEngine, clock = clock(), defaultToken = "mock")
 
         repeat(2) {
             assertEquals(
@@ -287,7 +283,6 @@ class GithubApiKtorClientTest {
 
     @Test fun `rate limiter`() = runTest {
         val delay = 2.minutes
-        val testClock = TestClock(this)
 
         val mockEngine = mockEngine {
             respond(
@@ -298,26 +293,26 @@ class GithubApiKtorClientTest {
                     HttpHeaders.ContentType to listOf("application/json; charset=utf-8"),
                     "X-RateLimit-Limit" to listOf("60"),
                     "X-RateLimit-Remaining" to listOf("0"),
-                    "X-RateLimit-Reset" to listOf((testClock.now().epochSeconds + delay.inWholeSeconds).toString()),
+                    "X-RateLimit-Reset" to listOf((clock().now() + delay).epochSeconds.toString()),
                     "X-RateLimit-Resource" to listOf("core"),
                     "X-RateLimit-Used" to listOf("27")
                 )
             )
         }
 
-        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock", clock = testClock)
+        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock", clock = clock())
 
         assertEquals(emptyList<License>(), (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data)
         runCurrent()
 
-        val startTime = currentTime
+        val startTime = clock().now()
 
         assertEquals(emptyList<License>(), (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data)
 
-        val elapsed = currentTime - startTime
+        val elapsed = clock().now() - startTime
         assertTrue(
-            elapsed >= delay.inWholeMilliseconds,
-            "Должен был ждать сброса ограничения rate limit. Прошло: ${elapsed / 1000}с, ожидалось >= ${delay.inWholeSeconds}с"
+            elapsed >= delay,
+            "Должен был ждать сброса ограничения rate limit. Прошло: ${elapsed.inWholeSeconds}с, ожидалось >= ${delay.inWholeSeconds}с"
         )
     }
 }

@@ -17,6 +17,8 @@ class TestClock(private val testScope: TestScope) : Clock {
     override fun now(): Instant = Instant.fromEpochMilliseconds(testScope.currentTime)
 }
 
+internal fun TestScope.clock(): Clock = TestClock(this)
+
 internal fun TestScope.mockEngine(
     handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData
 ) = MockEngine.create {
