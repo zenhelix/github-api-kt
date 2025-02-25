@@ -8,23 +8,20 @@ import io.ktor.client.statement.request
 import io.ktor.util.AttributeKey
 import io.ktor.util.collections.ConcurrentMap
 
-internal val CIRCUIT_BREAKER_NAME_GLOBAL = CircuitBreakerName("KTOR_GLOBAL_RATE_LIMITER")
+internal val CIRCUIT_BREAKER_NAME_GLOBAL = CircuitBreakerName("KTOR_GLOBAL_CIRCUIT_BREAKER")
 
 internal val CircuitBreakerInstancesRegistryKey = AttributeKey<ConcurrentMap<CircuitBreakerName, CircuitBreaker>>("CircuitBreakerInstancesRegistryKey")
 internal val CircuitBreakerNameKey = AttributeKey<CircuitBreakerName>("CircuitBreakerInstancesRegistryKey")
 
 public val CircuitBreaking: ClientPlugin<CircuitBreakerConfig> = createClientPlugin("CircuitBreaker", ::CircuitBreakerConfig) {
     val instances = pluginConfig.circuitBreakers.apply {
-        pluginConfig.global?.also {
-            put(CIRCUIT_BREAKER_NAME_GLOBAL, it)
-        }
-    }
-    require(instances.isNotEmpty()) { "At least one circuit breaker must be specified" }
-    client.circuitBreakerRegistry().putAll(instances.mapValues { entry ->
-        entry.value.apply {
-            initialize(client.engine.dispatcher)
-        }
+        pluginConfig.global?.also { put(CIRCUIT_BREAKER_NAME_GLOBAL, it) }
+    }.also { require(it.isNotEmpty()) { "At least one circuit breaker must be specified" } }
+
+    client.circuitBreakerRegistry().putAll(instances.mapValues {
+        it.value.apply { initialize(client.engine.dispatcher) }
     })
+
     circuitBreakerPluginBuilder()
 }
 

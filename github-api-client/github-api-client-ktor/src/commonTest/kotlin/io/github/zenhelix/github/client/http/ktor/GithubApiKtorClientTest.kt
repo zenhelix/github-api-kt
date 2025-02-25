@@ -20,9 +20,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -254,6 +256,60 @@ class GithubApiKtorClientTest {
         advanceTimeBy(resetInterval + 1.seconds)
 
         assertEquals(expectedResponse, (client.licenses() as HttpResponseResult.Error<ErrorResponse>).data)
+
+        assertEquals(
+            emptyList<License>(),
+            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
+        )
+    }
+
+    @Test fun `rate limiter without header`() = runTest {
+        val mockEngine = MockEngine(MockEngineConfig().apply {
+            this.dispatcher = StandardTestDispatcher(this@runTest.testScheduler)
+            addHandler {
+                respond(
+                    //language=JSON
+                    "[]",
+                    headers = headersOf(HttpHeaders.ContentType to listOf("application/json; charset=utf-8"))
+                )
+            }
+        })
+
+        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock")
+
+        assertEquals(
+            emptyList<License>(),
+            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
+        )
+    }
+
+    @Test fun `rate limiter`() = runTest {
+        val delay = 2.minutes
+
+        val mockEngine = MockEngine(MockEngineConfig().apply {
+            this.dispatcher = StandardTestDispatcher(this@runTest.testScheduler)
+            addHandler {
+                respond(
+                    //language=JSON
+                    "[]",
+                    headers = headersOf(
+                        HttpHeaders.ContentType to listOf("application/json; charset=utf-8"),
+                        "X-RateLimit-Limit" to listOf("60"),
+                        "X-RateLimit-Remaining" to listOf("0"),
+                        "X-RateLimit-Reset" to listOf((Clock.System.now() + delay).epochSeconds.toString()),
+                        "X-RateLimit-Resource" to listOf("core"),
+                        "X-RateLimit-Used" to listOf("27")
+                    )
+                )
+            }
+        })
+
+        val client = GithubApiKtorClient(mockEngine, defaultToken = "mock")
+
+        assertEquals(
+            emptyList<License>(),
+            (client.licenses() as HttpResponseResult.Success<LicensesResponse>).data
+        )
 
         assertEquals(
             emptyList<License>(),

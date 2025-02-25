@@ -50,9 +50,8 @@ internal class CircuitBreaker(
 
     internal fun handleResponse(response: HttpResponse) {
         when (val state = _state.value) {
-            CLOSED    -> handleResponse(state, response)
-            HALF_OPEN -> handleResponse(state, response)
-            OPEN      -> error("Circuit breaker is already open")
+            CLOSED, HALF_OPEN -> handleResponse(state, response)
+            OPEN              -> error("Circuit breaker is already open")
         }
     }
 

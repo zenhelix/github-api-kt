@@ -7,6 +7,8 @@ import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerE
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreaking
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.global
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.withCircuitBreaker
+import io.github.zenhelix.github.client.http.ktor.ratelimiter.RateLimiting
+import io.github.zenhelix.github.client.http.ktor.ratelimiter.withRateLimiter
 import io.github.zenhelix.github.client.http.ktor.utils.HttpClientExtensions.result
 import io.github.zenhelix.github.client.http.ktor.utils.acceptGithubJson
 import io.github.zenhelix.github.client.http.ktor.utils.githubApiVersion
@@ -61,6 +63,9 @@ public class GithubApiKtorClient(
                 circuitBreakerConfig()
             }
         }
+        install(RateLimiting) {
+            global {}
+        }
 
         configure()
     }
@@ -69,16 +74,12 @@ public class GithubApiKtorClient(
         TODO()
     }
 
-    override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = try {
+    override suspend fun licenses(token: String?): HttpResponseResult<LicensesResponse, ErrorResponse> = handleCircuitBreaker {
         client.get("$baseUrl/licenses") {
             bearerAuth(requiredToken(token))
             withCircuitBreaker()
+            withRateLimiter()
         }.result()
-    } catch (e: CircuitBreakerException) {
-        HttpResponseResult.CircuitBreakerError(
-            data = CircuitBreakerDataError(nextHalfOpenTimeEpochMs = e.nextHalfOpenTime.toEpochMilliseconds()),
-            cause = e
-        )
     }
 
     public fun close() {
@@ -87,4 +88,16 @@ public class GithubApiKtorClient(
 
     private fun requiredToken(token: String?): String = token ?: defaultToken ?: throw IllegalArgumentException("Token is required")
 
+    private suspend inline fun <T : Any, E : Any> handleCircuitBreaker(
+        crossinline block: suspend () -> HttpResponseResult<T, E>
+    ): HttpResponseResult<T, E> {
+        return try {
+            block()
+        } catch (e: CircuitBreakerException) {
+            HttpResponseResult.CircuitBreakerError(
+                data = CircuitBreakerDataError(e.nextHalfOpenTime.toEpochMilliseconds()),
+                cause = e
+            )
+        }
+    }
 }

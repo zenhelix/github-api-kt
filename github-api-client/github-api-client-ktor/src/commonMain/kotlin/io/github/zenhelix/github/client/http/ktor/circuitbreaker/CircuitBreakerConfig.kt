@@ -4,6 +4,8 @@ import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerS
 import io.github.zenhelix.github.client.http.ktor.circuitbreaker.CircuitBreakerState.OPEN
 import io.ktor.client.statement.HttpResponse
 import io.ktor.util.collections.ConcurrentMap
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Clock.System
 import kotlin.jvm.JvmInline
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -41,6 +43,16 @@ public class CircuitBreakerConfig {
          */
         public var failureTrigger: HttpResponse.() -> Boolean = { status.value >= 400 }
 
+    }
+
+    public fun circuitBreaker(name: CircuitBreakerName, clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit) {
+        val config = CircuitBreakerBuilder().apply(builder)
+        circuitBreakers[name] = CircuitBreaker(name, clock = clock, config = config)
+    }
+
+    public fun globalCircuitBreaker(clock: Clock = System, builder: CircuitBreakerBuilder.() -> Unit) {
+        val config = CircuitBreakerBuilder().apply(builder)
+        global = CircuitBreaker(CIRCUIT_BREAKER_NAME_GLOBAL, clock = clock, config = config)
     }
 }
 
