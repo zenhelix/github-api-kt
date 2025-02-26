@@ -16,6 +16,7 @@ import kotlinx.serialization.Serializable
  * @property createdAt The creation date of the artifact.
  * @property expiresAt The expiration date of the artifact.
  * @property updatedAt The last update date of the artifact.
+ * @property digest The SHA256 digest of the artifact content.
  * @property workflowRun Optional information about the workflow run that created the artifact.
  */
 @Serializable
@@ -36,8 +37,9 @@ public data class Artifact(
     val expiresAt: String,
     @SerialName("updated_at")
     val updatedAt: String,
+    val digest: String?,
     @SerialName("workflow_run")
-    val workflowRun: WorkflowRunSummary? = null
+    val workflowRun: WorkflowRunSummary?
 )
 
 /**

@@ -100,9 +100,9 @@ public data class RunnerApplication(
     val downloadUrl: String,
     val filename: String,
     @SerialName("temp_download_token")
-    val tempDownloadToken: String? = null,
+    val tempDownloadToken: String?,
     @SerialName("sha256_checksum")
-    val sha256Checksum: String? = null
+    val sha256Checksum: String?
 )
 
 /**

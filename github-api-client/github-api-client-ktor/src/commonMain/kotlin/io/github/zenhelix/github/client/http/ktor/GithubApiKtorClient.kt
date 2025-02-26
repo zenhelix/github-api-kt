@@ -108,6 +108,7 @@ public class GithubApiKtorClient(
     override suspend fun artifacts(
         owner: String,
         repository: String,
+        name: String?,
         perPage: Int,
         page: Int,
         token: String?
@@ -117,6 +118,7 @@ public class GithubApiKtorClient(
                 takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "artifacts")
                 parameters.append("per_page", perPage.toString())
                 parameters.append("page", page.toString())
+                name?.let { parameters.append("name", it) }
             }
             bearerAuth(requiredToken(token))
         }.result()
@@ -126,6 +128,7 @@ public class GithubApiKtorClient(
         owner: String,
         repository: String,
         runId: Long,
+        name: String?,
         perPage: Int,
         page: Int,
         token: String?
@@ -135,6 +138,7 @@ public class GithubApiKtorClient(
                 takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "runs", runId.toString(), "artifacts")
                 parameters.append("per_page", perPage.toString())
                 parameters.append("page", page.toString())
+                name?.let { parameters.append("name", it) }
             }
             bearerAuth(requiredToken(token))
         }.result()

@@ -43,6 +43,7 @@ public class GithubApiWebfluxClient(
     override suspend fun artifacts(
         owner: String,
         repository: String,
+        name: String?,
         perPage: Int,
         page: Int,
         token: String?
@@ -54,6 +55,7 @@ public class GithubApiWebfluxClient(
         owner: String,
         repository: String,
         runId: Long,
+        name: String?,
         perPage: Int,
         page: Int,
         token: String?

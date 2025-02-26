@@ -44,6 +44,7 @@ public class GithubApiRestClient(
     override fun artifacts(
         owner: String,
         repository: String,
+        name: String?,
         perPage: Int,
         page: Int,
         token: String?
@@ -55,6 +56,7 @@ public class GithubApiRestClient(
         owner: String,
         repository: String,
         runId: Long,
+        name: String?,
         perPage: Int,
         page: Int,
         token: String?

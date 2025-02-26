@@ -59,6 +59,7 @@ public interface GithubLicensesCoroutineApi {
     public suspend fun licenses(token: String? = null): HttpResponseResult<LicensesResponse, ErrorResponse>
 
 }
+
 public interface GithubMarkdownCoroutineApi
 public interface GithubMetaCoroutineApi
 public interface GithubMetricsCoroutineApi
@@ -88,6 +89,7 @@ public interface GithubArtifactCoroutineApi {
      * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
      * @param perPage The number of results per page (max 100). Default: 30
      * @param page Page number of the results to fetch. Default: 1
+     * @param name The name field of an artifact. When specified, only artifacts with this name will be returned.
      * @param token The GitHub personal access token for authentication. If null, the default token will be used.
      * @return [HttpResponseResult] containing the list of artifacts or an error.
      *
@@ -96,6 +98,7 @@ public interface GithubArtifactCoroutineApi {
     public suspend fun artifacts(
         owner: String,
         repository: String,
+        name: String? = null,
         perPage: Int = 30,
         page: Int = 1,
         token: String? = null
@@ -109,6 +112,7 @@ public interface GithubArtifactCoroutineApi {
      * @param runId The unique identifier of the workflow run.
      * @param perPage The number of results per page (max 100). Default: 30
      * @param page Page number of the results to fetch. Default: 1
+     * @param name The name field of an artifact. When specified, only artifacts with this name will be returned.
      * @param token The GitHub personal access token for authentication. If null, the default token will be used.
      * @return [HttpResponseResult] containing the list of artifacts or an error.
      *
@@ -118,6 +122,7 @@ public interface GithubArtifactCoroutineApi {
         owner: String,
         repository: String,
         runId: Long,
+        name: String? = null,
         perPage: Int = 30,
         page: Int = 1,
         token: String? = null
