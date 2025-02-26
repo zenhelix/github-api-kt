@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.copilot
 
-interface GithubCopilotApi {
+public interface GithubCopilotApi {
 }

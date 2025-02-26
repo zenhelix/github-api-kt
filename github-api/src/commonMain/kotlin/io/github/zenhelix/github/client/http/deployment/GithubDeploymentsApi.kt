@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.deployment
 
-interface GithubDeploymentsApi {
+public interface GithubDeploymentsApi {
 }

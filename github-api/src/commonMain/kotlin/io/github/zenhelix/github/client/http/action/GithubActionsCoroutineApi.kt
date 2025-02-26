@@ -120,7 +120,7 @@ public interface GithubArtifactCoroutineApi {
 }
 
 /**
- * Asynchronous interface for GitHub Actions Cache API.
+ * Asynchronous public interface for GitHub Actions Cache API.
  */
 public interface GithubCacheCoroutineApi {
 

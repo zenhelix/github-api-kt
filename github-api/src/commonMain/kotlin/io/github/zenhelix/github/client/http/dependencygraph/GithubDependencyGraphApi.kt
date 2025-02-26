@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.dependencygraph
 
-interface GithubDependencyGraphApi {
+public interface GithubDependencyGraphApi {
 }

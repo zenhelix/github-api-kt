@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.collaborators
 
-interface GithubCollaboratorsCoroutineApi {
+public interface GithubCollaboratorsCoroutineApi {
 }

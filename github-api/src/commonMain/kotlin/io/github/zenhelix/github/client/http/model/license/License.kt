@@ -4,6 +4,31 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
+ * Represents a list of licenses returned by the GitHub API.
+ *
+ * @sample
+ * ```json
+ * [
+ *   {
+ *     "key": "mit",
+ *     "name": "MIT License",
+ *     "spdx_id": "MIT",
+ *     "url": "https://api.github.com/licenses/mit",
+ *     "node_id": "MDc6TGljZW5zZTEz"
+ *   },
+ *   {
+ *     "key": "apache-2.0",
+ *     "name": "Apache License 2.0",
+ *     "spdx_id": "Apache-2.0",
+ *     "url": "https://api.github.com/licenses/apache-2.0",
+ *     "node_id": "MDc6TGljZW5zZTI="
+ *   }
+ * ]
+ * ```
+ */
+public typealias LicensesResponse = List<License>
+
+/**
  * Represents a license object returned by the GitHub API.
  *
  * @property key Unique identifier for the license (e.g., "mit").

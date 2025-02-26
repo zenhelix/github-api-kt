@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.emoji
 
-interface GithubEmojisCoroutineApi {
+public interface GithubEmojisCoroutineApi {
 }

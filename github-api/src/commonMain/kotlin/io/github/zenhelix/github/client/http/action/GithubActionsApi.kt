@@ -120,7 +120,7 @@ public interface GithubArtifactApi {
 }
 
 /**
- * Synchronous interface for GitHub Actions Cache API.
+ * Synchronous public interface for GitHub Actions Cache API.
  */
 public interface GithubCacheApi {
 

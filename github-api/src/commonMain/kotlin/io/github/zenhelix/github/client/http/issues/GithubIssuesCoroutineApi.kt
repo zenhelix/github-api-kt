@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.issues
 
-interface GithubIssuesCoroutineApi {
+public interface GithubIssuesCoroutineApi {
 }

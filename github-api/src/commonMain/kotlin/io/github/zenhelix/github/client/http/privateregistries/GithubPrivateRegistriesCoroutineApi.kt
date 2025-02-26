@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.privateregistries
 
-interface GithubPrivateRegistriesCoroutineApi {
+public interface GithubPrivateRegistriesCoroutineApi {
 }

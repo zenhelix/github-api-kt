@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.codesofconduct
 
-interface GithubCodesOfConductCoroutineApi {
+public interface GithubCodesOfConductCoroutineApi {
 }

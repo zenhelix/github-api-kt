@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.reaction
 
-interface GithubReactionsApi {
+public interface GithubReactionsApi {
 }

@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.codescanning
 
-interface GithubCodeScanningApi {
+public interface GithubCodeScanningApi {
 }

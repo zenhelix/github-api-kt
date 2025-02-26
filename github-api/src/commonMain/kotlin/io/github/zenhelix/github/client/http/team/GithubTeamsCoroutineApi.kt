@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.team
 
-interface GithubTeamsCoroutineApi {
+public interface GithubTeamsCoroutineApi {
 }

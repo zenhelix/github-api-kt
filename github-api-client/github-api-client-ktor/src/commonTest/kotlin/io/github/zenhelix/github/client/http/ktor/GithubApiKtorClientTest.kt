@@ -11,8 +11,8 @@ import io.github.zenhelix.github.client.http.ktor.utils.RateLimitResource
 import io.github.zenhelix.github.client.http.ktor.utils.RateLimitUsed
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
-import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.github.zenhelix.github.client.http.model.license.License
+import io.github.zenhelix.github.client.http.model.license.LicensesResponse
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders

@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.release
 
-interface GithubReleasesCoroutineApi {
+public interface GithubReleasesCoroutineApi {
 }

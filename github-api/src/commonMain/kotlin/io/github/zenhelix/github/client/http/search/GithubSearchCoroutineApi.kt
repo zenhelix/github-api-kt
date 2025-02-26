@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.search
 
-interface GithubSearchCoroutineApi {
+public interface GithubSearchCoroutineApi {
 }

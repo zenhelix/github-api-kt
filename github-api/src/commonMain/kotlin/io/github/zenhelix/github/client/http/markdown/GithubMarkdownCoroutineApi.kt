@@ -1,4 +1,4 @@
 package io.github.zenhelix.github.client.http.markdown
 
-interface GithubMarkdownCoroutineApi {
+public interface GithubMarkdownCoroutineApi {
 }

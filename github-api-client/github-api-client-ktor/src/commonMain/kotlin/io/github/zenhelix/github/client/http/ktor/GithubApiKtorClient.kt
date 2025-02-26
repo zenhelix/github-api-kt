@@ -14,7 +14,6 @@ import io.github.zenhelix.github.client.http.ktor.utils.githubApiVersion
 import io.github.zenhelix.github.client.http.model.CircuitBreakerDataError
 import io.github.zenhelix.github.client.http.model.ErrorResponse
 import io.github.zenhelix.github.client.http.model.HttpResponseResult
-import io.github.zenhelix.github.client.http.model.LicensesResponse
 import io.github.zenhelix.github.client.http.model.action.ArtifactResponse
 import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.action.CacheListResponse
@@ -23,6 +22,7 @@ import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyRespo
 import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
+import io.github.zenhelix.github.client.http.model.license.LicensesResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
