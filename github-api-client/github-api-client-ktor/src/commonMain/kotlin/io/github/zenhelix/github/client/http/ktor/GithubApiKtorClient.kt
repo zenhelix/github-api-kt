@@ -20,6 +20,8 @@ import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.action.CacheListResponse
 import io.github.zenhelix.github.client.http.model.action.CacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyResponse
+import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsageResponse
+import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.Runner
 import io.github.zenhelix.github.client.http.model.action.RunnerApplicationsResponse
 import io.github.zenhelix.github.client.http.model.action.RunnerRegistrationToken
@@ -295,12 +297,40 @@ public class GithubApiKtorClient(
         owner: String,
         repository: String,
         key: String,
+        ref: String?,
         token: String?
     ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse> = handleCircuitBreaker {
         client.delete {
             url {
                 takeFrom(baseUrl).appendPathSegments("repos", owner, repository, "actions", "caches")
                 parameters.append("key", key)
+                ref?.let { parameters.append("ref", it) }
+            }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun getCacheUsageForOrganization(
+        org: String,
+        token: String?
+    ): HttpResponseResult<OrganizationCacheUsageResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url { takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "cache", "usage") }
+            bearerAuth(requiredToken(token))
+        }.result()
+    }
+
+    override suspend fun listRepositoriesWithCacheUsageForOrganization(
+        org: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<OrganizationRepositoriesCacheUsageResponse, ErrorResponse> = handleCircuitBreaker {
+        client.get {
+            url {
+                takeFrom(baseUrl).appendPathSegments("orgs", org, "actions", "cache", "usage-by-repository")
+                parameters.append("per_page", perPage.toString())
+                parameters.append("page", page.toString())
             }
             bearerAuth(requiredToken(token))
         }.result()

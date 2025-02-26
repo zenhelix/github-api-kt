@@ -10,6 +10,8 @@ import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.action.CacheListResponse
 import io.github.zenhelix.github.client.http.model.action.CacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyResponse
+import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsageResponse
+import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.Runner
 import io.github.zenhelix.github.client.http.model.action.RunnerApplicationsResponse
 import io.github.zenhelix.github.client.http.model.action.RunnerRegistrationToken
@@ -127,8 +129,25 @@ public class GithubApiWebfluxClient(
         owner: String,
         repository: String,
         key: String,
+        ref: String?,
         token: String?
     ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getCacheUsageForOrganization(
+        org: String,
+        token: String?
+    ): HttpResponseResult<OrganizationCacheUsageResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun listRepositoriesWithCacheUsageForOrganization(
+        org: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<OrganizationRepositoriesCacheUsageResponse, ErrorResponse> {
         TODO("Not yet implemented")
     }
 

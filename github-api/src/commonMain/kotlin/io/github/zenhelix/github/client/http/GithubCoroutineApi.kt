@@ -8,6 +8,8 @@ import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.action.CacheListResponse
 import io.github.zenhelix.github.client.http.model.action.CacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyResponse
+import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsageResponse
+import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.Runner
 import io.github.zenhelix.github.client.http.model.action.RunnerApplicationsResponse
 import io.github.zenhelix.github.client.http.model.action.RunnerRegistrationToken
@@ -196,8 +198,8 @@ public interface GithubCacheCoroutineApi {
      *
      * @param owner The account owner of the repository. The name is not case-sensitive.
      * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
-     * @param key The full or partial cache key to filter results.
-     * @param ref The full Git reference to filter results. The ref can be a branch, tag, or a commit SHA.
+     * @param key An explicit key or prefix for identifying the cache.
+     * @param ref The full Git reference for narrowing down the cache. The `ref` for a branch should be formatted as `refs/heads/<branch name>`. To reference a pull request use `refs/pull/<number>/merge`.
      * @param sort The property to sort the results by. Default: "last_accessed_at".
      *             Must be one of: "created_at", "last_accessed_at", "size_in_bytes".
      * @param direction The direction to sort the results by. Default: "desc".
@@ -261,8 +263,11 @@ public interface GithubCacheCoroutineApi {
      * @param owner The account owner of the repository. The name is not case-sensitive.
      * @param repository The name of the repository without the .git extension. The name is not case-sensitive.
      * @param key A key identifying the cache to delete. All caches that match the key will be deleted.
+     * @param ref The full Git reference for narrowing down the cache. If provided, only caches that match both the key and ref will be deleted.
+     *           The `ref` for a branch should be formatted as `refs/heads/<branch name>`.
+     *           To reference a pull request use `refs/pull/<number>/merge`.
      * @param token The GitHub personal access token for authentication. If null, the default token will be used.
-     * @return [HttpResponseResult] indicating success or an error.
+     * @return [HttpResponseResult] containing details about the deleted caches or an error.
      *
      * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#delete-github-actions-caches-for-a-repository-using-a-cache-key)
      */
@@ -270,8 +275,41 @@ public interface GithubCacheCoroutineApi {
         owner: String,
         repository: String,
         key: String,
+        ref: String? = null,
         token: String? = null
     ): HttpResponseResult<DeleteCachesByKeyResponse, ErrorResponse>
+
+    /**
+     * Gets GitHub Actions cache usage for an organization.
+     *
+     * @param org The organization name. The name is not case sensitive.
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the organization cache usage statistics or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#get-github-actions-cache-usage-for-an-organization)
+     */
+    public suspend fun getCacheUsageForOrganization(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<OrganizationCacheUsageResponse, ErrorResponse>
+
+    /**
+     * Lists repositories and their GitHub Actions cache usage for an organization.
+     *
+     * @param org The organization name. The name is not case sensitive.
+     * @param perPage The number of results per page (max 100). Default: 30
+     * @param page Page number of the results to fetch. Default: 1
+     * @param token The GitHub personal access token for authentication. If null, the default token will be used.
+     * @return [HttpResponseResult] containing the repositories with cache usage or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/cache?apiVersion=2022-11-28#list-repositories-with-github-actions-cache-usage-for-an-organization)
+     */
+    public suspend fun listRepositoriesWithCacheUsageForOrganization(
+        org: String,
+        perPage: Int = 30,
+        page: Int = 1,
+        token: String? = null
+    ): HttpResponseResult<OrganizationRepositoriesCacheUsageResponse, ErrorResponse>
 
 }
 
