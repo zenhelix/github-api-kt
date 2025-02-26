@@ -6,18 +6,18 @@ import kotlinx.serialization.Serializable
 /**
  * Represents a GitHub Actions cache entry.
  *
- * @property id The ID of the cache.
- * @property ref The ref of the cache.
- * @property key The key used to identify the cache.
- * @property version The version of the cache.
- * @property lastAccessedAt The timestamp when the cache was last accessed.
- * @property createdAt The timestamp when the cache was created.
- * @property sizeInBytes The size of the cache in bytes.
+ * @property id Unique identifier of the cache.
+ * @property ref The Git reference for the cache.
+ * @property key A key identifying the cache.
+ * @property version Version of the cache.
+ * @property lastAccessedAt Timestamp of the last cache access.
+ * @property createdAt Timestamp when the cache was created.
+ * @property sizeInBytes Size of the cache in bytes.
  */
 @Serializable
 public data class Cache(
     val id: Long,
-    val ref: String,
+    val ref: String?,
     val key: String,
     val version: String,
     @SerialName("last_accessed_at")
@@ -31,8 +31,8 @@ public data class Cache(
 /**
  * Response for listing caches of a repository.
  *
- * @property totalCount The total number of caches.
- * @property caches The list of caches.
+ * @property totalCount Total number of caches.
+ * @property caches List of caches in the repository.
  */
 @Serializable
 public data class CacheListResponse(
@@ -43,11 +43,11 @@ public data class CacheListResponse(
 )
 
 /**
- * Response for a cache usage request.
+ * Response for a cache usage request for a repository.
  *
- * @property fullName The full name of the repository (owner/repo).
- * @property activeCachesCount The number of active caches.
- * @property activeCachesSizeInBytes The total size of active caches in bytes.
+ * @property fullName Full name of the repository (owner/repo).
+ * @property activeCachesCount Number of active caches.
+ * @property activeCachesSizeInBytes Total size of active caches in bytes.
  */
 @Serializable
 public data class CacheUsageResponse(
@@ -60,10 +60,10 @@ public data class CacheUsageResponse(
 )
 
 /**
- * Response for a delete cache by key request.
+ * Response for deleting caches by key.
  *
- * @property totalCount The total number of deleted caches.
- * @property caches The list of deleted caches.
+ * @property totalCount Number of deleted caches.
+ * @property caches List of deleted caches.
  */
 @Serializable
 public data class DeleteCachesByKeyResponse(
@@ -76,8 +76,8 @@ public data class DeleteCachesByKeyResponse(
 /**
  * Response for GitHub Actions cache usage for an organization.
  *
- * @property totalActiveCachesSizeInBytes The total size of active caches in bytes.
- * @property totalActiveCachesCount The number of active caches.
+ * @property totalActiveCachesSizeInBytes Total size of active caches in bytes.
+ * @property totalActiveCachesCount Total number of active caches.
  */
 @Serializable
 public data class OrganizationCacheUsageResponse(
@@ -88,11 +88,11 @@ public data class OrganizationCacheUsageResponse(
 )
 
 /**
- * Repository cache usage information.
+ * Represents repository cache usage information.
  *
- * @property fullName The full name of the repository (owner/repo).
- * @property activeCachesSizeInBytes The total size of active caches in bytes for this repository.
- * @property activeCachesCount The number of active caches for this repository.
+ * @property fullName Full name of the repository (owner/repo).
+ * @property activeCachesSizeInBytes Total size of active caches for the repository.
+ * @property activeCachesCount Number of active caches for the repository.
  */
 @Serializable
 public data class RepositoryCacheUsage(
@@ -107,8 +107,8 @@ public data class RepositoryCacheUsage(
 /**
  * Response for listing repositories with GitHub Actions cache usage for an organization.
  *
- * @property totalCount The total number of repositories.
- * @property repositoryCacheUsages The list of repositories with cache usage information.
+ * @property totalCount Total number of repositories.
+ * @property repositoryCacheUsages List of repositories with cache usage information.
  */
 @Serializable
 public data class OrganizationRepositoriesCacheUsageResponse(
