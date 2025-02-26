@@ -11,7 +11,8 @@ import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsage
 import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 
-public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubRunnersApi
+public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubGitHubHostedRunnersApi, GithubOIDCApi, GithubPermissionsApi, GithubSecretsApi,
+                                    GithubRunnerGroupsApi, GithubVariablesApi, GithubWorkflowJobsApi, GithubWorkflowRunsApi, GithubWorkflowsApi
 
 public interface GithubArtifactApi {
 
@@ -243,4 +244,38 @@ public interface GithubCacheApi {
     ): HttpResponseResult<OrganizationRepositoriesCacheUsageResponse, ErrorResponse>
 }
 
-public interface GithubRunnersApi
+// GitHub-hosted runners
+public interface GithubGitHubHostedRunnersApi {
+}
+
+// OIDC
+public interface GithubOIDCApi {
+}
+
+// Permissions
+public interface GithubPermissionsApi {
+}
+
+// Secrets
+public interface GithubSecretsApi {
+}
+
+// Self-hosted runner groups
+public interface GithubRunnerGroupsApi {
+}
+
+// Variables
+public interface GithubVariablesApi {
+}
+
+// Workflow jobs
+public interface GithubWorkflowJobsApi {
+}
+
+// Workflow runs
+public interface GithubWorkflowRunsApi {
+}
+
+// Workflows
+public interface GithubWorkflowsApi {
+}

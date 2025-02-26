@@ -11,7 +11,10 @@ import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsage
 import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 
-public interface GithubActionsCoroutineApi : GithubArtifactCoroutineApi, GithubCacheCoroutineApi, GithubRunnersCoroutineApi
+public interface GithubActionsCoroutineApi : GithubArtifactCoroutineApi, GithubCacheCoroutineApi, GithubGitHubHostedRunnersCoroutineApi, GithubOIDCCoroutineApi,
+                                             GithubPermissionsCoroutineApi, GithubSecretsCoroutineApi, GithubRunnerGroupsCoroutineApi,
+                                             GithubVariablesCoroutineApi, GithubWorkflowJobsCoroutineApi, GithubWorkflowRunsCoroutineApi,
+                                             GithubWorkflowsCoroutineApi
 
 public interface GithubArtifactCoroutineApi {
 
@@ -244,4 +247,38 @@ public interface GithubCacheCoroutineApi {
 
 }
 
-public interface GithubRunnersCoroutineApi
+// GitHub-hosted runners
+public interface GithubGitHubHostedRunnersCoroutineApi {
+}
+
+// OIDC
+public interface GithubOIDCCoroutineApi {
+}
+
+// Permissions
+public interface GithubPermissionsCoroutineApi {
+}
+
+// Secrets
+public interface GithubSecretsCoroutineApi {
+}
+
+// Self-hosted runner groups
+public interface GithubRunnerGroupsCoroutineApi {
+}
+
+// Variables
+public interface GithubVariablesCoroutineApi {
+}
+
+// Workflow jobs
+public interface GithubWorkflowJobsCoroutineApi {
+}
+
+// Workflow runs
+public interface GithubWorkflowRunsCoroutineApi {
+}
+
+// Workflows
+public interface GithubWorkflowsCoroutineApi {
+}
