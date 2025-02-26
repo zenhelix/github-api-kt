@@ -1,4 +1,9 @@
 package io.github.zenhelix.github.client.http.api.securityadvisory
 
-public interface GithubSecurityAdvisoriesCoroutineApi {
+public interface GithubSecurityAdvisoriesCoroutineApi : GithubSecurityAdvisoriesGlobalCoroutineApi, GithubSecurityAdvisoriesRepositoryCoroutineApi
+
+public interface GithubSecurityAdvisoriesGlobalCoroutineApi {
+}
+
+public interface GithubSecurityAdvisoriesRepositoryCoroutineApi {
 }
