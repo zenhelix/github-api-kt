@@ -7,11 +7,17 @@ import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.action.CacheListResponse
 import io.github.zenhelix.github.client.http.model.action.CacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyResponse
+import io.github.zenhelix.github.client.http.model.action.HostedRunner
+import io.github.zenhelix.github.client.http.model.action.HostedRunnersResponse
 import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerImagesResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerLimitsResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerMachineSpecsResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerPlatformsResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 
-public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubGitHubHostedRunnersApi, GithubOIDCApi, GithubPermissionsApi, GithubSecretsApi,
+public interface GithubActionsApi : GithubArtifactApi, GithubCacheApi, GithubHostedRunnersApi, GithubOIDCApi, GithubPermissionsApi, GithubSecretsApi,
                                     GithubRunnerGroupsApi, GithubVariablesApi, GithubWorkflowJobsApi, GithubWorkflowRunsApi, GithubWorkflowsApi
 
 public interface GithubArtifactApi {
@@ -228,8 +234,183 @@ public interface GithubCacheApi {
     ): HttpResponseResult<OrganizationRepositoriesCacheUsageResponse, ErrorResponse>
 }
 
-// GitHub-hosted runners
-public interface GithubGitHubHostedRunnersApi {
+/**
+ * Synchronous API interface for GitHub-hosted runners operations.
+ */
+public interface GithubHostedRunnersApi {
+
+    /**
+     * Lists all GitHub-hosted runners configured in an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param perPage Number of results per page (max 100). Default is 30.
+     * @param page Page number of the results to fetch. Default is 1.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the list of runners or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#list-github-hosted-runners-for-an-organization)
+     */
+    public suspend fun listHostedRunners(
+        org: String,
+        perPage: Int = 30,
+        page: Int = 1,
+        token: String? = null
+    ): HttpResponseResult<HostedRunnersResponse, ErrorResponse>
+
+    /**
+     * Creates a GitHub-hosted runner for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param name Name of the runner. Must be 1-64 characters.
+     * @param image Details of the runner image.
+     * @param size Machine size of the runner.
+     * @param runnerGroupId The existing runner group to add this runner to.
+     * @param maximumRunners Optional maximum number of runners to scale up to.
+     * @param enableStaticIp Optional flag to enable static public IP.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the created runner or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#create-a-github-hosted-runner-for-an-organization)
+     */
+    public suspend fun createHostedRunner(
+        org: String,
+        name: String,
+        image: Map<String, String>,
+        size: String,
+        runnerGroupId: Long,
+        maximumRunners: Int? = null,
+        enableStaticIp: Boolean? = null,
+        token: String? = null
+    ): HttpResponseResult<HostedRunner, ErrorResponse>
+
+    /**
+     * Gets GitHub-owned images available for GitHub-hosted runners in an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the list of GitHub-owned images or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-github-owned-images-for-github-hosted-runners-in-an-organization)
+     */
+    public suspend fun getGitHubOwnedImages(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerImagesResponse, ErrorResponse>
+
+    /**
+     * Gets partner images available for GitHub-hosted runners in an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the list of partner images or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-partner-images-for-github-hosted-runners-in-an-organization)
+     */
+    public suspend fun getPartnerImages(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerImagesResponse, ErrorResponse>
+
+    /**
+     * Gets GitHub-hosted runners limits for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the runner limits or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-limits-on-github-hosted-runners-for-an-organization)
+     */
+    public suspend fun getHostedRunnersLimits(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerLimitsResponse, ErrorResponse>
+
+    /**
+     * Gets machine specs available for GitHub-hosted runners in an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the list of machine specs or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-github-hosted-runners-machine-specs-for-an-organization)
+     */
+    public suspend fun getHostedRunnersMachineSpecs(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerMachineSpecsResponse, ErrorResponse>
+
+    /**
+     * Gets platforms available for GitHub-hosted runners in an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the list of platforms or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-platforms-for-github-hosted-runners-in-an-organization)
+     */
+    public suspend fun getHostedRunnersPlatforms(
+        org: String,
+        token: String? = null
+    ): HttpResponseResult<RunnerPlatformsResponse, ErrorResponse>
+
+    /**
+     * Gets a specific GitHub-hosted runner in an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param runnerId Unique identifier of the GitHub-hosted runner.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the runner details or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#get-a-github-hosted-runner-for-an-organization)
+     */
+    public suspend fun getHostedRunner(
+        org: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<HostedRunner, ErrorResponse>
+
+    /**
+     * Updates a GitHub-hosted runner for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param runnerId Unique identifier of the GitHub-hosted runner.
+     * @param name Optional new name for the runner.
+     * @param runnerGroupId Optional new runner group to add this runner to.
+     * @param maximumRunners Optional maximum number of runners to scale up to.
+     * @param enableStaticIp Optional flag to update static public IP.
+     * @param imageVersion Optional version of the runner image (for custom images).
+     * @param token Optional authentication token.
+     * @return HttpResponseResult containing the updated runner or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#update-a-github-hosted-runner-for-an-organization)
+     */
+    public suspend fun updateHostedRunner(
+        org: String,
+        runnerId: Long,
+        name: String? = null,
+        runnerGroupId: Long? = null,
+        maximumRunners: Int? = null,
+        enableStaticIp: Boolean? = null,
+        imageVersion: String? = null,
+        token: String? = null
+    ): HttpResponseResult<HostedRunner, ErrorResponse>
+
+    /**
+     * Deletes a GitHub-hosted runner for an organization.
+     *
+     * @param org The organization name. The name is not case-sensitive.
+     * @param runnerId Unique identifier of the GitHub-hosted runner.
+     * @param token Optional authentication token.
+     * @return HttpResponseResult indicating success or an error.
+     *
+     * [API Documentation](https://docs.github.com/en/rest/actions/hosted-runners?apiVersion=2022-11-28#delete-a-github-hosted-runner-for-an-organization)
+     */
+    public suspend fun deleteHostedRunner(
+        org: String,
+        runnerId: Long,
+        token: String? = null
+    ): HttpResponseResult<HostedRunner, ErrorResponse>
+
 }
 
 // OIDC

@@ -19,8 +19,14 @@ import io.github.zenhelix.github.client.http.model.action.ArtifactsResponse
 import io.github.zenhelix.github.client.http.model.action.CacheListResponse
 import io.github.zenhelix.github.client.http.model.action.CacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.DeleteCachesByKeyResponse
+import io.github.zenhelix.github.client.http.model.action.HostedRunner
+import io.github.zenhelix.github.client.http.model.action.HostedRunnersResponse
 import io.github.zenhelix.github.client.http.model.action.OrganizationCacheUsageResponse
 import io.github.zenhelix.github.client.http.model.action.OrganizationRepositoriesCacheUsageResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerImagesResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerLimitsResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerMachineSpecsResponse
+import io.github.zenhelix.github.client.http.model.action.RunnerPlatformsResponse
 import io.github.zenhelix.github.client.http.model.action.WorkflowRunArtifactsResponse
 import io.github.zenhelix.github.client.http.model.license.LicensesResponse
 import io.ktor.client.HttpClient
@@ -328,6 +334,92 @@ public class GithubApiKtorClient(
             }
             bearerAuth(requiredToken(token))
         }.result()
+    }
+
+    override suspend fun listHostedRunners(
+        org: String,
+        perPage: Int,
+        page: Int,
+        token: String?
+    ): HttpResponseResult<HostedRunnersResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun createHostedRunner(
+        org: String,
+        name: String,
+        image: Map<String, String>,
+        size: String,
+        runnerGroupId: Long,
+        maximumRunners: Int?,
+        enableStaticIp: Boolean?,
+        token: String?
+    ): HttpResponseResult<HostedRunner, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getGitHubOwnedImages(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerImagesResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getPartnerImages(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerImagesResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getHostedRunnersLimits(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerLimitsResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getHostedRunnersMachineSpecs(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerMachineSpecsResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getHostedRunnersPlatforms(
+        org: String,
+        token: String?
+    ): HttpResponseResult<RunnerPlatformsResponse, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getHostedRunner(
+        org: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<HostedRunner, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun updateHostedRunner(
+        org: String,
+        runnerId: Long,
+        name: String?,
+        runnerGroupId: Long?,
+        maximumRunners: Int?,
+        enableStaticIp: Boolean?,
+        imageVersion: String?,
+        token: String?
+    ): HttpResponseResult<HostedRunner, ErrorResponse> {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun deleteHostedRunner(
+        org: String,
+        runnerId: Long,
+        token: String?
+    ): HttpResponseResult<HostedRunner, ErrorResponse> {
+        TODO("Not yet implemented")
     }
 
 }
